@@ -1,0 +1,546 @@
+/* Global Reset & Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f0ede6; /* Soft warm gray backing for desktop */
+  color: #442a07; /* Primary brand chocolate brown */
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(68, 42, 7, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(68, 42, 7, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8f6f3f;
+}
+
+/* App Shell (Mobile Viewport Frame on Desktop) */
+.app-shell {
+  min-height: 100vh;
+  background-color: #f0ede6; /* Soft warm gray background for desktop backing */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Mobile viewport container */
+.viewer-mobile-container {
+  width: 100%;
+  max-width: 480px; /* Standard phone container on desktop */
+  height: 100%;
+  max-height: 100vh;
+  background-color: #f8f6f2; /* Official light cream background */
+  color: #442a07;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 15px 50px rgba(68, 42, 7, 0.15);
+  border-left: 1px solid rgba(68, 42, 7, 0.08);
+  border-right: 1px solid rgba(68, 42, 7, 0.08);
+}
+
+/* Navbar */
+.viewer-navbar {
+  height: 60px;
+  background-color: #ffffff; /* Elegant pure white */
+  border-bottom: 1px solid rgba(68, 42, 7, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.navbar-toggle-sidebar-btn {
+  background-color: #fbf9f1;
+  border: 1px solid rgba(68, 42, 7, 0.12);
+  color: #442a07;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.navbar-toggle-sidebar-btn:hover {
+  background-color: #e6d8a8; /* Primary brand gold/brass */
+  border-color: #8f6f3f;
+}
+
+.navbar-doc-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.navbar-brand-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #8f6f3f; /* Accent brand warm tan */
+  letter-spacing: 0.08em;
+}
+
+.navbar-doc-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #442a07;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+  margin-top: 1px;
+  letter-spacing: 0.01em;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.navbar-download-btn {
+  background-color: #e6d8a8; /* Primary brand gold */
+  border: none;
+  color: #442a07;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+  box-shadow: 0 2px 8px rgba(68, 42, 7, 0.1);
+}
+
+.navbar-download-btn:hover {
+  background-color: #dfc198;
+  transform: scale(1.05);
+}
+
+.navbar-download-btn:active {
+  transform: scale(0.95);
+}
+
+/* PDF Canvas Container */
+.viewer-canvas-container {
+  flex: 1;
+  position: relative;
+  background-color: #f8f6f2;
+  overflow: hidden;
+}
+
+.pdf-viewer-core-wrapper {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Loading Canvas */
+.canvas-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #8f6f3f;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(68, 42, 7, 0.08);
+  border-top-color: #e6d8a8;
+  border-radius: 50%;
+  animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Drawer Overlay Backdrop */
+.drawer-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(68, 42, 7, 0.4); /* Elegant warm overlay */
+  z-index: 990;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Bottom Drawer Panel */
+.drawer-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70%;
+  background-color: #ffffff; /* Pure white drawer */
+  border-top: 2px solid #e6d8a8;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -10px 40px rgba(68, 42, 7, 0.12);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drawer-panel.is-open {
+  transform: translateY(0);
+}
+
+.drawer-panel.is-closed {
+  transform: translateY(100%);
+}
+
+/* Pull Handle */
+.drawer-handle {
+  width: 36px;
+  height: 4px;
+  background-color: rgba(68, 42, 7, 0.08);
+  border-radius: 2px;
+  margin: 8px auto 4px auto;
+  flex-shrink: 0;
+}
+
+/* Drawer Header */
+.drawer-header {
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.drawer-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #442a07;
+  text-transform: uppercase;
+}
+
+.drawer-close-btn {
+  background: none;
+  border: none;
+  color: #8f6f3f;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.drawer-close-btn:hover {
+  background-color: rgba(68, 42, 7, 0.04);
+  color: #442a07;
+}
+
+/* Search Box */
+.sidebar-search-container {
+  padding: 0.5rem 1rem;
+}
+
+.sidebar-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #fbf9f1;
+  border: 1px solid rgba(68, 42, 7, 0.12);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.sidebar-search-box:focus-within {
+  border-color: #8f6f3f;
+  box-shadow: 0 0 0 2px rgba(143, 111, 63, 0.1);
+}
+
+.search-icon {
+  color: #8f6f3f;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.search-input {
+  background: none;
+  border: none;
+  outline: none;
+  color: #442a07;
+  font-size: 0.85rem;
+  width: 100%;
+  font-family: inherit;
+}
+
+.search-input::placeholder {
+  color: #a08c75;
+}
+
+.search-clear-btn {
+  background: none;
+  border: none;
+  color: #8f6f3f;
+  font-size: 0.7rem;
+  cursor: pointer;
+  font-weight: 500;
+  padding-left: 0.4rem;
+}
+
+.search-clear-btn:hover {
+  color: #442a07;
+}
+
+/* Tab Switcher */
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(68, 42, 7, 0.08);
+  padding: 0 1rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.5rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #8f6f3f;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.tab-btn:hover {
+  color: #442a07;
+}
+
+.tab-btn.is-active {
+  color: #442a07;
+  border-bottom-color: #442a07;
+}
+
+/* Scrollable Content */
+.sidebar-content-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Brand header */
+.brand-header-simple {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #8f6f3f;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid rgba(68, 42, 7, 0.08);
+}
+
+.brand-header-simple span {
+  color: #8f6f3f;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* Catalog Items Grid/Flat */
+.catalog-items-flat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.catalog-item-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: #8f6f3f;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.3;
+}
+
+.catalog-item-btn:hover {
+  background-color: rgba(68, 42, 7, 0.03);
+  color: #442a07;
+}
+
+.catalog-item-btn.is-active {
+  background-color: #fbf9f1;
+  color: #442a07;
+  font-weight: 600;
+}
+
+.item-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: rgba(68, 42, 7, 0.2);
+  flex-shrink: 0;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.catalog-item-btn:hover .item-dot {
+  background-color: #442a07;
+}
+
+.catalog-item-btn.is-active .item-dot {
+  background-color: #442a07;
+  transform: scale(1.3);
+}
+
+.catalog-no-results {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #8f6f3f;
+  font-size: 0.8rem;
+}
+
+/* Bookmarks Overrides */
+.outline-wrapper {
+  padding: 0 0.5rem;
+}
+
+.rpv-bookmark__list {
+  list-style-type: none;
+  padding-left: 0.75rem;
+}
+
+.rpv-bookmark__list--root {
+  padding-left: 0;
+}
+
+.rpv-bookmark__item {
+  margin: 0.15rem 0;
+}
+
+.rpv-bookmark__toggle {
+  color: #8f6f3f !important;
+  cursor: pointer;
+}
+
+.rpv-bookmark__title {
+  color: #8f6f3f !important;
+  font-size: 0.8rem !important;
+  font-family: 'Outfit', sans-serif !important;
+  padding: 0.35rem 0.5rem !important;
+  border-radius: 4px !important;
+  transition: all 0.2s !important;
+  display: block;
+  text-decoration: none;
+}
+
+.rpv-bookmark__title:hover {
+  background-color: rgba(68, 42, 7, 0.03) !important;
+  color: #442a07 !important;
+}
+
+.rpv-bookmark__title--active {
+  background-color: #fbf9f1 !important;
+  color: #442a07 !important;
+  font-weight: 600 !important;
+}
+
+/* React PDF Viewer Custom overrides for light luxury theme */
+.rpv-core__viewer {
+  background-color: #f8f6f2 !important;
+}
+
+.rpv-core__inner-page {
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 15px rgba(68, 42, 7, 0.06) !important;
+}
+
+.rpv-core__page-layer {
+  touch-action: pan-x pan-y !important;
+}
+
+/* Fixes inside iframe or mobile canvas */
+@media (max-width: 480px) {
+  .viewer-mobile-container {
+    border-left: none;
+    border-right: none;
+  }
+}
