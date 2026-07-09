@@ -34,87 +34,87 @@ const tocMapping: Record<string, { page: number; title: string; code: string }> 
   },
   "cali-2761-gmt": {
     page: 3,
-    title: "Jam Tangan Mekanik Otomatis dengan Fungsi GMT",
+    title: "Mekanik Otomatis GMT",
     code: "Ref. 2761"
   },
   "cali-2765-gmt-worldtimer": {
     page: 10,
-    title: "Jam Tangan Mekanik Otomatis dengan Fungsi GMT Worldtimer",
+    title: "Mekanik Otomatis GMT Worldtimer",
     code: "Ref. 2765"
   },
   "cali-2766-2": {
     page: 17,
-    title: "Jam Tangan Mekanik Otomatis dengan Kalender Lengkap",
+    title: "Mekanik Otomatis Kalender Lengkap",
     code: "Ref. 2765 / 2766-2"
   },
   "cali-2880": {
     page: 27,
-    title: "Jam Tangan Mekanik Putar Manual",
+    title: "Mekanik Putar Manual",
     code: "Ref. 2880"
   },
   "cali-2945-2145-moonphase": {
     page: 34,
-    title: "Jam Tangan Mekanik Otomatis (Self-Winding) dengan Fase Bulan",
+    title: "Mekanik Otomatis Moon Phase",
     code: "Ref. 2945 & 2145"
   },
   "cali-7741-chrono": {
     page: 40,
-    title: "Jam Tangan Mekanik Otomatis dengan Fungsi Kronograf Tri-Compax",
+    title: "Mekanik Otomatis Kronograf Tri-Compax",
     code: "Ref. 7741"
   },
   "cali-7754": {
     page: 47,
-    title: "Jam Tangan Mekanikal Otomatis",
+    title: "Mekanikal Otomatis Standard",
     code: "Ref. 7754"
   },
   "cali-7780-chrono": {
     page: 53,
-    title: "Jam Tangan Mekanik Otomatis dengan Fungsi Kronograf Bi-Compax & Tanggal",
+    title: "Mekanik Otomatis Kronograf Bi-Compax",
     code: "Ref. 7780"
   },
   "cali-7783-flyback": {
     page: 60,
-    title: "Jam Tangan Mekanik Otomatis dengan Fungsi Kronograf Flyback",
+    title: "Mekanik Otomatis Kronograf Flyback",
     code: "Ref. 7783"
   },
   "cali-mech-auto-with-date-hand-and-moonphase": {
     page: 66,
-    title: "Jam Tangan Mekanis Pemutar Otomatis dengan Jarum Tanggal / Jarum Tanggal & Fase Bulan",
-    code: "Jarum Tanggal / Moonphase"
+    title: "Mekanik Otomatis Jarum Tanggal & Moonphase",
+    code: "Jarum Tanggal"
   },
   "cali-mech-auto-with-date": {
     page: 77,
-    title: "Jam Tangan Mekanikal Otomatis dengan Tanggal",
+    title: "Mekanikal Otomatis dengan Tanggal",
     code: "Auto Tanggal"
   },
   "cali-mech-auto-with-daydateweekmonth-moonphase": {
     page: 86,
-    title: "Jam Tangan Mekanis Pemutar Otomatis dengan Indikator Tanggal, Hari, Minggu, Bulan, & Fase Bulan",
-    code: "Auto Full Calendar"
+    title: "Mekanik Otomatis Kalender Lengkap & Moonphase",
+    code: "Full Calendar"
   },
   "cali-mech-auto-with-moonphase-date": {
     page: 99,
-    title: "Jam Tangan Mekanikal Otomatis dengan Fase Bulan dan Tanggal",
-    code: "Auto Moonphase & Tanggal"
+    title: "Mekanikal Otomatis Moonphase & Tanggal",
+    code: "Moonphase Date"
   },
   "cali-mech-automatic": {
     page: 108,
-    title: "Jam Tangan Mekanikal Otomatis",
+    title: "Mekanikal Otomatis Standard",
     code: "Auto Standard"
   },
   "cali-mech-small-seconds": {
     page: 115,
-    title: "Jam Tangan Mekanis Pemutar Otomatis dengan Indikator Tanggal & Jarum Detik Kecil (Small Second)",
-    code: "Auto Small Second"
+    title: "Mekanikal Otomatis Small Second",
+    code: "Small Second"
   },
   "cali-quartz-2": {
     page: 124,
-    title: "Jam Tangan Quartz",
+    title: "Quartz Standard",
     code: "Quartz"
   },
   "cali-quartz-shine": {
     page: 136,
-    title: "Jam Tangan Quartz Shine",
+    title: "Quartz Shine",
     code: "Quartz Shine"
   }
 };
