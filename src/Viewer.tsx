@@ -263,7 +263,7 @@ export default function AppViewer() {
             <button 
               className="navbar-toggle-sidebar-btn" 
               onClick={() => setIsDrawerOpen(true)}
-              title="Buka Daftar Isi"
+              title="Buka Katalog Manual Book"
             >
               <Menu size={20} />
             </button>
@@ -333,7 +333,7 @@ export default function AppViewer() {
 
           {/* Drawer Header */}
           <div className="drawer-header">
-            <span className="drawer-title">Daftar Isi Buku</span>
+            <span className="drawer-title">Katalog Manual Book</span>
             <button className="drawer-close-btn" onClick={() => setIsDrawerOpen(false)}>
               <X size={18} />
             </button>
