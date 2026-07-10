@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core';
 import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation';
 import { 
-  Menu, 
   X, 
   Search, 
   Download, 
-  Info
+  Info,
+  BookOpen,
+  ChevronDown
 } from 'lucide-react';
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -265,7 +266,9 @@ export default function AppViewer() {
               onClick={() => setIsDrawerOpen(true)}
               title="Buka Katalog Manual Book"
             >
-              <Menu size={20} />
+              <BookOpen size={16} />
+              <span className="navbar-toggle-btn-text">Katalog</span>
+              <ChevronDown size={14} style={{ opacity: 0.7 }} />
             </button>
             <div className="navbar-doc-info">
               <span className="navbar-brand-badge">{activeManual.brand}</span>

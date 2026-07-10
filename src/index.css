@@ -94,15 +94,23 @@ body {
   background-color: #fbf9f1;
   border: 1px solid rgba(68, 42, 7, 0.12);
   color: #442a07;
-  width: 36px;
+  padding: 0 0.75rem;
   height: 36px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 8px;
+  gap: 0.35rem;
+  border-radius: 20px; /* Pill shape */
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(68, 42, 7, 0.05);
+}
+
+.navbar-toggle-btn-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #442a07;
 }
 
 .navbar-toggle-sidebar-btn:hover {
