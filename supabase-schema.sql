@@ -118,4 +118,28 @@ INSERT INTO public.chronologie_toc_entries (manual_id, title, code, page_number)
 ('d83769c0-93dd-5004-96cc-52dfc273e6f9', 'Mekanikal Otomatis Small Second', 'Small Second', 115),
 ('d83769c0-93dd-5004-96cc-52dfc273e6f9', 'Quartz Standard', 'Quartz', 124),
 ('d83769c0-93dd-5004-96cc-52dfc273e6f9', 'Quartz Shine', 'Quartz Shine', 136);
-*/
+
+-- ======================================================
+-- 5. Kebijakan Akses Storage (chronologie-manuals)
+-- ======================================================
+
+-- Kebijakan Baca Publik
+CREATE POLICY "Public Read Access" ON storage.objects
+FOR SELECT TO public
+USING (bucket_id = 'chronologie-manuals');
+
+-- Kebijakan Unggah Admin (Authenticated)
+CREATE POLICY "Admin Upload Access" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'chronologie-manuals');
+
+-- Kebijakan Update Admin (Authenticated)
+CREATE POLICY "Admin Update Access" ON storage.objects
+FOR UPDATE TO authenticated
+WITH CHECK (bucket_id = 'chronologie-manuals');
+
+-- Kebijakan Hapus Admin (Authenticated)
+CREATE POLICY "Admin Delete Access" ON storage.objects
+FOR DELETE TO authenticated
+USING (bucket_id = 'chronologie-manuals');
+
