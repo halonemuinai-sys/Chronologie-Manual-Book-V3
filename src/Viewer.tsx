@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core';
 import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation';
+import { supabase } from './config/supabaseClient';
 import { 
   X, 
   Search, 
@@ -26,7 +27,7 @@ interface ManualItem {
   page: number;
 }
 
-// Table of Contents page mapping for the single main PDF file
+// Table of Contents page mapping for the single main PDF file (Static Fallback)
 const tocMapping: Record<string, { page: number; title: string; code: string }> = {
   "raymond-weil-manual-guide": {
     page: 1,
@@ -124,13 +125,13 @@ export default function AppViewer() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
-  // Process catalog items based on static Table of Contents
-  const manualsList = useMemo((): ManualItem[] => {
+  // Process static catalog items (Static Fallback)
+  const staticManualsList = useMemo((): ManualItem[] => {
     return Object.entries(tocMapping).map(([key, value]) => {
       const isFullGuide = key === 'raymond-weil-manual-guide';
       return {
         slug: key,
-        file: "raymond-weil-manual-guide", // All routes read the same source file
+        file: "/assets/docs/raymond-weil-manual-guide", // All routes read the same source file
         title: value.title,
         brand: isFullGuide ? 'Raymond Weil' : 'Cali / Raymond Weil',
         cleanedTitle: value.title,
@@ -140,16 +141,106 @@ export default function AppViewer() {
     });
   }, []);
 
+  // Supabase dynamic states
+  const [dynamicManualsList, setDynamicManualsList] = useState<ManualItem[]>([]);
+  const [dynamicTocMapping, setDynamicTocMapping] = useState<Record<string, { page: number; title: string; code: string }>>({});
+  const [isUsingSupabase, setIsUsingSupabase] = useState(false);
+
+  // Fetch dynamic data from Supabase if configured
+  useEffect(() => {
+    const loadSupabaseData = async () => {
+      try {
+        const { data: dbBrands, error: brandsError } = await supabase.from('brands').select('*');
+        if (brandsError) throw brandsError;
+
+        const { data: dbManuals, error: manualsError } = await supabase.from('manuals').select('*');
+        if (manualsError) throw manualsError;
+
+        const { data: dbToc, error: tocError } = await supabase.from('toc_entries').select('*');
+        if (tocError) throw tocError;
+
+        if (dbBrands && dbManuals && dbToc && dbManuals.length > 0) {
+          const list: ManualItem[] = [];
+          const mappingObj: Record<string, { page: number; title: string; code: string }> = {};
+
+          dbManuals.forEach(manual => {
+            const brand = dbBrands.find(b => b.id === manual.brand_id);
+            const brandName = brand ? brand.name : 'Unknown';
+
+            // Register the base full manual book (starts at page 1)
+            mappingObj[manual.slug] = {
+              page: 1,
+              title: manual.title,
+              code: 'Full Book'
+            };
+
+            list.push({
+              slug: manual.slug,
+              file: manual.file_path,
+              title: manual.title,
+              brand: brandName,
+              cleanedTitle: manual.title,
+              code: 'Full Book',
+              page: 1
+            });
+
+            // Register all TOC entries linked to this manual
+            const entries = dbToc.filter(t => t.manual_id === manual.id);
+            entries.forEach(entry => {
+              // Create a unique slug for each chapter under this manual
+              const entrySlug = `${manual.slug}-${entry.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${entry.code.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+              
+              mappingObj[entrySlug] = {
+                page: entry.page_number,
+                title: entry.title,
+                code: entry.code
+              };
+
+              list.push({
+                slug: entrySlug,
+                file: manual.file_path,
+                title: entry.title,
+                brand: brandName,
+                cleanedTitle: entry.title,
+                code: entry.code,
+                page: entry.page_number
+              });
+            });
+          });
+
+          setDynamicManualsList(list);
+          setDynamicTocMapping(mappingObj);
+          setIsUsingSupabase(true);
+        }
+      } catch (err) {
+        console.warn('Failed to load data from Supabase, falling back to static mapping. Error:', err);
+      }
+    };
+
+    loadSupabaseData();
+  }, []);
+
+  // Determine active datasets (Supabase vs Fallback)
+  const activeManualsList = useMemo(() => {
+    return isUsingSupabase ? dynamicManualsList : staticManualsList;
+  }, [isUsingSupabase, dynamicManualsList, staticManualsList]);
+
+  const activeTocMapping = useMemo(() => {
+    return isUsingSupabase ? dynamicTocMapping : tocMapping;
+  }, [isUsingSupabase, dynamicTocMapping, tocMapping]);
+
   const defaultSlug = 'raymond-weil-manual-guide';
-  const activeSlug = slug || defaultSlug;
+  const activeSlug = slug || (isUsingSupabase ? (dynamicManualsList[0]?.slug || defaultSlug) : defaultSlug);
 
   const activeManual = useMemo(() => {
-    const found = manualsList.find(item => item.slug === activeSlug);
-    return found || manualsList.find(item => item.slug === defaultSlug) || manualsList[0];
-  }, [manualsList, activeSlug]);
+    const found = activeManualsList.find(item => item.slug === activeSlug);
+    return found || activeManualsList.find(item => item.slug === defaultSlug) || activeManualsList[0];
+  }, [activeManualsList, activeSlug]);
 
   // Main PDF File to fetch
-  const pdfUrl = '/assets/docs/raymond-weil-manual-guide';
+  const pdfUrl = useMemo(() => {
+    return activeManual ? activeManual.file : '/assets/docs/raymond-weil-manual-guide';
+  }, [activeManual]);
 
   // States
   const [searchQuery, setSearchQuery] = useState('');
@@ -160,13 +251,18 @@ export default function AppViewer() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Fetch the single main PDF once on start-up
+  // Fetch the active PDF when pdfUrl changes
   useEffect(() => {
+    if (!pdfUrl) return;
+
     setPdfLoading(true);
     setFetchError(null);
     setPdfData(null);
 
-    fetch(pdfUrl)
+    // Strip .pdf extension to prevent IDM interception
+    const cleanFetchUrl = pdfUrl.replace(/\.pdf$/, '');
+
+    fetch(cleanFetchUrl)
       .then(response => {
         if (!response.ok) {
           throw new Error(`Gagal mengunduh berkas PDF (Status: ${response.status})`);
@@ -182,7 +278,7 @@ export default function AppViewer() {
         setFetchError(err.message || 'Gagal memuat dokumen PDF');
         setPdfLoading(false);
       });
-  }, []);
+  }, [pdfUrl]);
 
   // Initialize page-navigation plugin
   const pageNavigationPluginInstance = pageNavigationPlugin();
@@ -191,7 +287,7 @@ export default function AppViewer() {
   // Trigger jumpToPage when activeSlug or pdfData changes
   useEffect(() => {
     if (pdfData && activeSlug) {
-      const entry = tocMapping[activeSlug];
+      const entry = activeTocMapping[activeSlug];
       if (entry) {
         const timer = setTimeout(() => {
           jumpToPage(entry.page - 1); // jumpToPage is 0-indexed
@@ -199,20 +295,21 @@ export default function AppViewer() {
         return () => clearTimeout(timer);
       }
     }
-  }, [activeSlug, pdfData]);
+  }, [activeSlug, pdfData, activeTocMapping]);
 
-  // Filtered Cali manuals (excluding the full book link itself in search filters)
+  // Filtered manuals list (excluding full book links in search filters)
   const filteredManuals = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    const caliList = manualsList.filter(item => item.slug !== 'raymond-weil-manual-guide');
+    const list = activeManualsList.filter(item => item.code !== 'Full Book');
 
-    if (!query) return caliList;
-    return caliList.filter(
+    if (!query) return list;
+    return list.filter(
       item =>
         item.cleanedTitle.toLowerCase().includes(query) ||
-        item.code.toLowerCase().includes(query)
+        item.code.toLowerCase().includes(query) ||
+        item.brand.toLowerCase().includes(query)
     );
-  }, [manualsList, searchQuery]);
+  }, [activeManualsList, searchQuery]);
 
   // Handle click on manual item
   const handleSelectManual = (targetSlug: string) => {
@@ -364,18 +461,27 @@ export default function AppViewer() {
           {/* Catalog Content Scroll Area */}
           <div className="sidebar-content-scroll" style={{ padding: '0.75rem 1rem' }}>
             <div className="catalog-list">
-              {/* Special Full Book Link */}
-              <button
-                className={`catalog-item-btn ${activeSlug === 'raymond-weil-manual-guide' ? 'is-active' : ''}`}
-                onClick={() => handleSelectManual('raymond-weil-manual-guide')}
-                style={{ marginBottom: '0.75rem', border: '1px solid rgba(68, 42, 7, 0.15)' }}
-              >
-                <div className="item-dot" />
-                <span className="item-title" style={{ fontWeight: 700 }}>[Buku Lengkap] Raymond Weil Manual Guide</span>
-              </button>
+              {/* Full Books Links Section */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div className="brand-header-simple" style={{ marginBottom: '0.5rem' }}>
+                  Pilih Buku Lengkap
+                </div>
+                {activeManualsList.filter(item => item.code === 'Full Book').map(item => (
+                  <button
+                    key={item.slug}
+                    className={`catalog-item-btn ${activeSlug === item.slug ? 'is-active' : ''}`}
+                    onClick={() => handleSelectManual(item.slug)}
+                    style={{ marginBottom: '0.5rem', border: '1px solid rgba(197, 168, 128, 0.15)' }}
+                  >
+                    <div className="item-dot" />
+                    <span className="item-title" style={{ fontWeight: 700 }}>[Buku Lengkap] {item.title}</span>
+                  </button>
+                ))}
+              </div>
 
+              {/* Chapters list by Brand */}
               <div className="brand-header-simple">
-                Daftar Isi Cali / Raymond Weil <span>({filteredManuals.length})</span>
+                Daftar Isi Seri Jam <span>({filteredManuals.length})</span>
               </div>
               <div className="catalog-items-flat">
                 {filteredManuals.map(item => {
@@ -389,13 +495,19 @@ export default function AppViewer() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                         <div className="item-dot" />
-                        <span className="item-title" style={{ 
-                          whiteSpace: 'nowrap', 
-                          overflow: 'hidden', 
-                          textOverflow: 'ellipsis' 
-                        }}>
-                          {item.cleanedTitle}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                          <span style={{ fontSize: '0.6rem', color: '#8f6f3f', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                            {item.brand}
+                          </span>
+                          <span className="item-title" style={{ 
+                            whiteSpace: 'nowrap', 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis',
+                            marginTop: '1px'
+                          }}>
+                            {item.cleanedTitle}
+                          </span>
+                        </div>
                       </div>
                       <span style={{ 
                         fontSize: '0.7rem', 

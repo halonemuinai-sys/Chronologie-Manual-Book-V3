@@ -1,57 +1,94 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from './config/supabaseClient';
 import mapping from './config/mapping.json';
 
 export default function Downloader() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-
-  const activeDoc = useMemo(() => {
-    if (!slug) return null;
-    return (mapping as Record<string, { file: string, title: string }>)[slug];
-  }, [slug]);
+  const [docTitle, setDocTitle] = useState('');
 
   useEffect(() => {
     if (!slug) return;
-    if (!activeDoc) {
-      setError('Document Not Found');
-      return;
-    }
 
-    // Fetch the extensionless file and trigger client-side download
-    const cleanFileUrl = `/assets/docs/${activeDoc.file.replace(/\.pdf$/, '')}`;
+    const loadDownload = async () => {
+      try {
+        // 1. Try querying direct manual book by slug in Supabase
+        const { data: manualData, error: manualError } = await supabase
+          .from('manuals')
+          .select('*')
+          .eq('slug', slug)
+          .single();
 
-    fetch(cleanFileUrl)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Gagal mengunduh berkas (Status: ${response.status})`);
+        if (!manualError && manualData) {
+          setDocTitle(manualData.title);
+          triggerDownload(manualData.file_path, manualData.title);
+          return;
         }
-        return response.blob();
-      })
-      .then(blob => {
-        // Create an Object URL for the blob
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `${activeDoc.title}.pdf`; // Re-attach .pdf extension for the saved file
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
 
-        // Auto-navigate back to the viewer after initiating download
-        const returnTimer = setTimeout(() => {
-          navigate(`/${slug}`);
-        }, 1500);
+        // 2. If it's a TOC entry slug, query all manuals to find if slug starts with manual slug
+        const { data: allManuals, error: allManualsError } = await supabase
+          .from('manuals')
+          .select('*');
 
-        return () => clearTimeout(returnTimer);
-      })
-      .catch(err => {
-        console.error('Download Error:', err);
-        setError(err.message || 'Gagal mengunduh dokumen PDF');
-      });
-  }, [slug, activeDoc, navigate]);
+        if (!allManualsError && allManuals) {
+          const parent = allManuals.find(m => slug.startsWith(m.slug));
+          if (parent) {
+            setDocTitle(parent.title);
+            triggerDownload(parent.file_path, parent.title);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to static mapping.json');
+      }
+
+      // 3. Static local mapping fallback
+      const localDoc = (mapping as Record<string, { file: string, title: string }>)[slug];
+      if (localDoc) {
+        setDocTitle(localDoc.title);
+        triggerDownload(`/assets/docs/${localDoc.file}`, localDoc.title);
+      } else {
+        setError('Dokumen tidak ditemukan');
+      }
+    };
+
+    const triggerDownload = (url: string, title: string) => {
+      const cleanFileUrl = url.replace(/\.pdf$/, '');
+
+      fetch(cleanFileUrl)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Gagal mengunduh berkas (Status: ${response.status})`);
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = `${title}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+
+          // Auto-navigate back to the viewer after initiating download
+          const returnTimer = setTimeout(() => {
+            navigate(`/${slug}`);
+          }, 1500);
+
+          return () => clearTimeout(returnTimer);
+        })
+        .catch(err => {
+          console.error('Download Error:', err);
+          setError(err.message || 'Gagal mengunduh dokumen PDF');
+        });
+    };
+
+    loadDownload();
+  }, [slug, navigate]);
 
   if (error) {
     return (
@@ -109,7 +146,7 @@ export default function Downloader() {
         Mengunduh Dokumen...
       </h2>
       <p style={{ color: '#a1a1aa', fontSize: '0.9rem', margin: 0, fontWeight: 300 }}>
-        File PDF manual <span style={{ color: '#c5a880', fontWeight: 500 }}>{activeDoc?.title}</span> sedang diproses dan akan otomatis tersimpan.
+        File PDF manual <span style={{ color: '#c5a880', fontWeight: 500 }}>{docTitle || 'Sedang diproses'}</span> sedang diproses dan akan otomatis tersimpan.
       </p>
     </div>
   );
