@@ -84,12 +84,12 @@ export default function AdminDashboard() {
 
   // Fetch functions
   const fetchBrands = async () => {
-    const { data, error } = await supabase.from('brands').select('*').order('name');
+    const { data, error } = await supabase.from('chronologie_brands').select('*').order('name');
     if (!error && data) setBrands(data);
   };
 
   const fetchManuals = async (brandId?: string) => {
-    let query = supabase.from('manuals').select('*').order('title');
+    let query = supabase.from('chronologie_manuals').select('*').order('title');
     if (brandId) {
       query = query.eq('brand_id', brandId);
     }
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
   const fetchTocEntries = async (manualId: string) => {
     if (!manualId) return;
     const { data, error } = await supabase
-      .from('toc_entries')
+      .from('chronologie_toc_entries')
       .select('*')
       .eq('manual_id', manualId)
       .order('page_number');
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
     if (!brandName || !brandSlug) return;
     setLoading(true);
 
-    const { error } = await supabase.from('brands').insert([
+    const { error } = await supabase.from('chronologie_brands').insert([
       { name: brandName, slug: brandSlug.toLowerCase().trim() }
     ]);
 
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
   const handleDeleteBrand = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus brand ini? Semua buku manual dan daftar isi di dalamnya juga akan terhapus.')) return;
     
-    const { error } = await supabase.from('brands').delete().eq('id', id);
+    const { error } = await supabase.from('chronologie_brands').delete().eq('id', id);
     if (error) {
       showMsg(`Gagal menghapus: ${error.message}`, 'error');
     } else {
@@ -193,13 +193,12 @@ export default function AdminDashboard() {
           throw new Error('Pilih berkas PDF terlebih dahulu untuk diunggah.');
         }
 
-        // Upload to bucket 'manuals'
-        // Note: Admin must create 'manuals' bucket in Supabase Storage with public access
+        // Upload to bucket 'chronologie-manuals'
         const cleanSlug = manualSlug.toLowerCase().trim();
         const storagePath = `${cleanSlug}`; // Extensionless filename to bypass IDM
 
         const { error: uploadError } = await supabase.storage
-          .from('manuals')
+          .from('chronologie-manuals')
           .upload(storagePath, manualFile, { upsert: true, contentType: 'application/pdf' });
 
         if (uploadError) {
@@ -207,7 +206,7 @@ export default function AdminDashboard() {
         }
 
         // Get public url
-        const { data } = supabase.storage.from('manuals').getPublicUrl(storagePath);
+        const { data } = supabase.storage.from('chronologie-manuals').getPublicUrl(storagePath);
         finalFilePath = data.publicUrl;
       } else {
         if (!manualLocalPath) {
@@ -216,7 +215,7 @@ export default function AdminDashboard() {
         finalFilePath = manualLocalPath;
       }
 
-      const { error: dbError } = await supabase.from('manuals').insert([
+      const { error: dbError } = await supabase.from('chronologie_manuals').insert([
         { 
           brand_id: manualBrandId, 
           title: manualTitle, 
@@ -248,15 +247,15 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       // If file was uploaded to Supabase Storage, try deleting it
-      if (filePath.includes('/storage/v1/object/public/manuals/')) {
-        const urlParts = filePath.split('/manuals/');
+      if (filePath.includes('/storage/v1/object/public/chronologie-manuals/')) {
+        const urlParts = filePath.split('/chronologie-manuals/');
         if (urlParts.length > 1) {
           const storagePath = urlParts[1];
-          await supabase.storage.from('manuals').remove([storagePath]);
+          await supabase.storage.from('chronologie-manuals').remove([storagePath]);
         }
       }
 
-      const { error } = await supabase.from('manuals').delete().eq('id', id);
+      const { error } = await supabase.from('chronologie_manuals').delete().eq('id', id);
       if (error) throw error;
 
       showMsg('Buku manual berhasil dihapus.', 'success');
@@ -277,7 +276,7 @@ export default function AdminDashboard() {
     }
     setLoading(true);
 
-    const { error } = await supabase.from('toc_entries').insert([
+    const { error } = await supabase.from('chronologie_toc_entries').insert([
       {
         manual_id: selectedManualId,
         title: tocTitle,
@@ -300,7 +299,7 @@ export default function AdminDashboard() {
 
   // Delete TOC Entry
   const handleDeleteToc = async (id: string) => {
-    const { error } = await supabase.from('toc_entries').delete().eq('id', id);
+    const { error } = await supabase.from('chronologie_toc_entries').delete().eq('id', id);
     if (error) {
       showMsg(`Gagal menghapus item: ${error.message}`, 'error');
     } else {
