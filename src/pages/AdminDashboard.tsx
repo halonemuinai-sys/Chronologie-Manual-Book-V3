@@ -698,6 +698,7 @@ export default function AdminDashboard() {
                           <th style={thStyle}>Judul Buku</th>
                           <th style={thStyle}>Slug</th>
                           <th style={thStyle}>Tipe File</th>
+                          <th style={thStyle}>Tautan Berkas</th>
                           <th style={{ ...thStyle, textAlign: 'center', width: '80px' }}>Aksi</th>
                         </tr>
                       </thead>
@@ -720,6 +721,16 @@ export default function AdminDashboard() {
                                   {isLocal ? 'Lokal' : 'Cloud Storage'}
                                 </span>
                               </td>
+                              <td style={tdStyle}>
+                                <a 
+                                  href={manual.file_path} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  style={{ color: '#c5a880', textDecoration: 'underline', fontSize: '0.8rem' }}
+                                >
+                                  Buka File
+                                </a>
+                              </td>
                               <td style={{ ...tdStyle, textAlign: 'center' }}>
                                 <button 
                                   onClick={() => handleDeleteManual(manual.id, manual.file_path)}
@@ -734,7 +745,7 @@ export default function AdminDashboard() {
                         })}
                         {manuals.length === 0 && (
                           <tr>
-                            <td colSpan={4} style={{ ...tdStyle, textAlign: 'center', color: '#a1a1aa', padding: '30px' }}>
+                            <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', color: '#a1a1aa', padding: '30px' }}>
                               Belum ada buku manual terdaftar untuk brand ini.
                             </td>
                           </tr>
