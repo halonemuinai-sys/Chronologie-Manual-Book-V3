@@ -723,12 +723,12 @@ export default function AdminDashboard() {
                               </td>
                               <td style={tdStyle}>
                                 <a 
-                                  href={manual.file_path} 
+                                  href={`${window.location.origin}/${manual.slug}`} 
                                   target="_blank" 
                                   rel="noopener noreferrer" 
                                   style={{ color: '#c5a880', textDecoration: 'underline', fontSize: '0.8rem' }}
                                 >
-                                  Buka File
+                                  Buka Halaman
                                 </a>
                               </td>
                               <td style={{ ...tdStyle, textAlign: 'center' }}>
