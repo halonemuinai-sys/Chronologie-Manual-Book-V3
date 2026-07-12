@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../config/supabaseClient';
-import { 
-  FolderPlus, 
-  BookOpen, 
-  ListPlus, 
-  LogOut, 
-  Trash2, 
-  Plus, 
-  Upload, 
+import { THEME_OPTIONS, DEFAULT_THEME, isThemeId, type ThemeId } from '../config/themes';
+import {
+  FolderPlus,
+  BookOpen,
+  ListPlus,
+  LogOut,
+  Trash2,
+  Plus,
+  Upload,
   Link,
-  ChevronRight
+  ChevronRight,
+  Palette,
+  Check
 } from 'lucide-react';
 
 interface Brand {
@@ -53,6 +56,10 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  // Site-wide default color tone for the public Viewer
+  const [viewerTheme, setViewerTheme] = useState<ThemeId>(DEFAULT_THEME);
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+
   // Brand Form State
   const [brandName, setBrandName] = useState('');
   const [brandSlug, setBrandSlug] = useState('');
@@ -78,6 +85,7 @@ export default function AdminDashboard() {
       } else {
         setSessionLoading(false);
         fetchBrands();
+        fetchViewerTheme();
       }
     });
   }, [navigate]);
@@ -86,6 +94,17 @@ export default function AdminDashboard() {
   const fetchBrands = async () => {
     const { data, error } = await supabase.from('brands').select('*').order('name');
     if (!error && data) setBrands(data);
+  };
+
+  const fetchViewerTheme = async () => {
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('default_viewer_theme')
+      .eq('id', 1)
+      .single();
+    if (!error && data && isThemeId(data.default_viewer_theme)) {
+      setViewerTheme(data.default_viewer_theme);
+    }
   };
 
   const fetchManuals = async (brandId?: string) => {
@@ -140,6 +159,25 @@ export default function AdminDashboard() {
   const showMsg = (text: string, type: 'success' | 'error') => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 5000);
+  };
+
+  // Change site-wide default color tone for the public Viewer
+  const handleChangeViewerTheme = async (themeId: ThemeId) => {
+    setIsThemeMenuOpen(false);
+    const previousTheme = viewerTheme;
+    setViewerTheme(themeId);
+
+    const { error } = await supabase
+      .from('app_settings')
+      .update({ default_viewer_theme: themeId, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+
+    if (error) {
+      setViewerTheme(previousTheme);
+      showMsg(`Gagal mengubah tone warna: ${error.message}`, 'error');
+    } else {
+      showMsg('Tone warna default Viewer publik berhasil diperbarui.', 'success');
+    }
   };
 
   // Add Brand
@@ -679,16 +717,74 @@ export default function AdminDashboard() {
                 <div style={formBoxStyle}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h3 style={{ ...formTitleStyle, marginBottom: 0 }}>Daftar Buku Manual</h3>
-                    <select
-                      value={selectedBrandId}
-                      onChange={(e) => setSelectedBrandId(e.target.value)}
-                      style={{ ...selectStyle, width: '200px', padding: '6px 12px' }}
-                    >
-                      <option value="">Semua Brand</option>
-                      {brands.map(brand => (
-                        <option key={brand.id} value={brand.id}>{brand.name}</option>
-                      ))}
-                    </select>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          onClick={() => setIsThemeMenuOpen(prev => !prev)}
+                          style={themeButtonStyle(isThemeMenuOpen)}
+                          title="Atur tone warna default halaman Viewer publik"
+                        >
+                          <Palette size={14} />
+                          <span
+                            style={{
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '50%',
+                              backgroundColor: THEME_OPTIONS.find(t => t.id === viewerTheme)?.swatch,
+                              border: '1px solid rgba(255,255,255,0.2)'
+                            }}
+                          />
+                          <span>Tone Viewer</span>
+                        </button>
+
+                        {isThemeMenuOpen && (
+                          <>
+                            <div
+                              onClick={() => setIsThemeMenuOpen(false)}
+                              style={{ position: 'fixed', inset: 0, zIndex: 1090 }}
+                            />
+                            <div style={themePopoverStyle}>
+                              <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, padding: '4px 8px 8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Tone Warna Viewer Publik
+                              </div>
+                              {THEME_OPTIONS.map(option => (
+                                <button
+                                  key={option.id}
+                                  type="button"
+                                  onClick={() => handleChangeViewerTheme(option.id)}
+                                  style={themeOptionStyle(viewerTheme === option.id)}
+                                >
+                                  <span
+                                    style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      borderRadius: '50%',
+                                      backgroundColor: option.swatch,
+                                      border: '1px solid rgba(255,255,255,0.15)',
+                                      flexShrink: 0
+                                    }}
+                                  />
+                                  <span style={{ flex: 1 }}>{option.label}</span>
+                                  {viewerTheme === option.id && <Check size={13} style={{ color: '#c5a880' }} />}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <select
+                        value={selectedBrandId}
+                        onChange={(e) => setSelectedBrandId(e.target.value)}
+                        style={{ ...selectStyle, width: '200px', padding: '6px 12px' }}
+                      >
+                        <option value="">Semua Brand</option>
+                        {brands.map(brand => (
+                          <option key={brand.id} value={brand.id}>{brand.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   
                   <div style={{ overflowX: 'auto' }}>
@@ -1045,6 +1141,53 @@ const tdStyle = {
   color: '#e2e8f0',
   verticalAlign: 'middle'
 };
+
+const themeButtonStyle = (isOpen: boolean) => ({
+  backgroundColor: isOpen ? 'rgba(197, 168, 128, 0.15)' : '#18191c',
+  border: `1px solid ${isOpen ? '#c5a880' : 'rgba(197, 168, 128, 0.2)'}`,
+  color: '#fff',
+  padding: '6px 12px',
+  borderRadius: '8px',
+  fontSize: '0.8rem',
+  fontWeight: 600,
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+  fontFamily: 'Outfit, sans-serif'
+});
+
+const themePopoverStyle = {
+  position: 'absolute' as const,
+  top: 'calc(100% + 8px)',
+  right: 0,
+  backgroundColor: '#18191c',
+  border: '1px solid rgba(197, 168, 128, 0.2)',
+  borderRadius: '10px',
+  padding: '6px',
+  minWidth: '190px',
+  boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
+  zIndex: 1100
+};
+
+const themeOptionStyle = (isActive: boolean) => ({
+  width: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px',
+  padding: '8px',
+  backgroundColor: isActive ? 'rgba(197, 168, 128, 0.12)' : 'transparent',
+  border: 'none',
+  borderRadius: '6px',
+  color: '#e2e8f0',
+  fontSize: '0.8rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+  textAlign: 'left' as const,
+  fontFamily: 'Outfit, sans-serif',
+  transition: 'background-color 0.15s'
+});
 
 const deleteBtnStyle = {
   backgroundColor: 'transparent',

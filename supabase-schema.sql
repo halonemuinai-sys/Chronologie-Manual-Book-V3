@@ -45,12 +45,25 @@ CREATE TABLE IF NOT EXISTS chronologie.toc_entries (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Tabel Pengaturan Aplikasi (baris tunggal, id selalu 1)
+CREATE TABLE IF NOT EXISTS chronologie.app_settings (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    default_viewer_theme TEXT NOT NULL DEFAULT 'gold',
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT app_settings_single_row CHECK (id = 1)
+);
+
+INSERT INTO chronologie.app_settings (id, default_viewer_theme)
+VALUES (1, 'gold')
+ON CONFLICT (id) DO NOTHING;
+
 -- ======================================================
 -- 3. Aktifkan Row Level Security (RLS)
 -- ======================================================
 ALTER TABLE chronologie.brands ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chronologie.manuals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chronologie.toc_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chronologie.app_settings ENABLE ROW LEVEL SECURITY;
 
 -- ======================================================
 -- 4. Pembuatan Policy (Kebijakan Akses Database)
@@ -81,15 +94,27 @@ USING (true)
 WITH CHECK (true);
 
 -- Policy untuk tabel toc_entries
-CREATE POLICY "Public read access for toc_entries" 
-ON chronologie.toc_entries FOR SELECT 
-TO anon, authenticated 
+CREATE POLICY "Public read access for toc_entries"
+ON chronologie.toc_entries FOR SELECT
+TO anon, authenticated
 USING (true);
 
-CREATE POLICY "Admin full access for toc_entries" 
-ON chronologie.toc_entries FOR ALL 
-TO authenticated 
-USING (true) 
+CREATE POLICY "Admin full access for toc_entries"
+ON chronologie.toc_entries FOR ALL
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+-- Policy untuk tabel app_settings
+CREATE POLICY "Public read access for app_settings"
+ON chronologie.app_settings FOR SELECT
+TO anon, authenticated
+USING (true);
+
+CREATE POLICY "Admin update access for app_settings"
+ON chronologie.app_settings FOR UPDATE
+TO authenticated
+USING (true)
 WITH CHECK (true);
 
 -- ======================================================

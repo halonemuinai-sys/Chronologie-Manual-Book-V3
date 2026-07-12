@@ -1,8 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core';
 import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation';
 import { supabase } from './config/supabaseClient';
+import { THEME_OPTIONS, DEFAULT_THEME, isThemeId, type ThemeId } from './config/themes';
 import {
   X,
   Search,
@@ -123,31 +124,50 @@ const tocMapping: Record<string, { page: number; title: string; code: string }> 
   }
 };
 
-// Available color tones for the viewer theme switcher
-const THEME_OPTIONS = [
-  { id: 'gold', label: 'Emas Mewah', swatch: '#e6d8a8' },
-  { id: 'ocean', label: 'Biru Elegan', swatch: '#a8c8e6' },
-  { id: 'emerald', label: 'Zamrud', swatch: '#a8e6c0' },
-  { id: 'rose', label: 'Rose Gold', swatch: '#e6a8c8' },
-] as const;
-
-type ThemeId = typeof THEME_OPTIONS[number]['id'];
 const THEME_STORAGE_KEY = 'viewerColorTheme';
 
 export default function AppViewer() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
-  // Color theme (tone) state — persisted so the viewer remembers the choice
+  // Color theme (tone) state — visitor's own choice (if any) takes priority,
+  // otherwise falls back to the site-wide default set by the admin.
+  const savedThemePreference = typeof window !== 'undefined' ? window.localStorage.getItem(THEME_STORAGE_KEY) : null;
+  const hasExplicitPreference = useRef<boolean>(isThemeId(savedThemePreference));
+
   const [theme, setTheme] = useState<ThemeId>(() => {
-    const saved = typeof window !== 'undefined' ? window.localStorage.getItem(THEME_STORAGE_KEY) : null;
-    return (THEME_OPTIONS.find(t => t.id === saved)?.id) || 'gold';
+    return isThemeId(savedThemePreference) ? savedThemePreference : DEFAULT_THEME;
   });
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
 
+  const handleSelectTheme = (themeId: ThemeId) => {
+    hasExplicitPreference.current = true;
+    window.localStorage.setItem(THEME_STORAGE_KEY, themeId);
+    setTheme(themeId);
+    setIsThemeMenuOpen(false);
+  };
+
+  // Load the site-wide default tone set by the admin; only applies if the
+  // visitor hasn't picked their own tone in this browser yet.
   useEffect(() => {
-    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
-  }, [theme]);
+    const loadDefaultTheme = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('default_viewer_theme')
+          .eq('id', 1)
+          .single();
+        if (error) throw error;
+        if (data && !hasExplicitPreference.current && isThemeId(data.default_viewer_theme)) {
+          setTheme(data.default_viewer_theme);
+        }
+      } catch (err) {
+        console.warn('Failed to load default viewer theme from Supabase, using local default. Error:', err);
+      }
+    };
+
+    loadDefaultTheme();
+  }, []);
 
   // Process static catalog items (Static Fallback)
   const staticManualsList = useMemo((): ManualItem[] => {
@@ -416,10 +436,7 @@ export default function AppViewer() {
                     <button
                       key={option.id}
                       className={`theme-option-btn ${theme === option.id ? 'is-active' : ''}`}
-                      onClick={() => {
-                        setTheme(option.id);
-                        setIsThemeMenuOpen(false);
-                      }}
+                      onClick={() => handleSelectTheme(option.id)}
                     >
                       <span className="theme-swatch-dot" style={{ backgroundColor: option.swatch }} />
                       {option.label}
