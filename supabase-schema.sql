@@ -6,6 +6,13 @@
 -- ======================================================
 CREATE SCHEMA IF NOT EXISTS chronologie;
 
+-- Berikan hak akses USAGE dan hak tabel pada schema baru ke API (role anon & authenticated)
+GRANT USAGE ON SCHEMA chronologie TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA chronologie TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA chronologie TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA chronologie GRANT ALL ON TABLES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA chronologie GRANT ALL ON SEQUENCES TO anon, authenticated;
+
 -- ======================================================
 -- 2. Pembuatan Tabel di Dalam Schema 'chronologie'
 -- ======================================================
