@@ -3,13 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core';
 import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation';
 import { supabase } from './config/supabaseClient';
-import { 
-  X, 
-  Search, 
-  Download, 
+import {
+  X,
+  Search,
+  Download,
   Info,
   BookOpen,
-  ChevronDown
+  ChevronDown,
+  Palette,
+  Check
 } from 'lucide-react';
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -121,9 +123,31 @@ const tocMapping: Record<string, { page: number; title: string; code: string }> 
   }
 };
 
+// Available color tones for the viewer theme switcher
+const THEME_OPTIONS = [
+  { id: 'gold', label: 'Emas Mewah', swatch: '#e6d8a8' },
+  { id: 'ocean', label: 'Biru Elegan', swatch: '#a8c8e6' },
+  { id: 'emerald', label: 'Zamrud', swatch: '#a8e6c0' },
+  { id: 'rose', label: 'Rose Gold', swatch: '#e6a8c8' },
+] as const;
+
+type ThemeId = typeof THEME_OPTIONS[number]['id'];
+const THEME_STORAGE_KEY = 'viewerColorTheme';
+
 export default function AppViewer() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+
+  // Color theme (tone) state — persisted so the viewer remembers the choice
+  const [theme, setTheme] = useState<ThemeId>(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem(THEME_STORAGE_KEY) : null;
+    return (THEME_OPTIONS.find(t => t.id === saved)?.id) || 'gold';
+  });
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+
+  useEffect(() => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
 
   // Process static catalog items (Static Fallback)
   const staticManualsList = useMemo((): ManualItem[] => {
@@ -353,7 +377,7 @@ export default function AppViewer() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-theme={theme}>
       <div className="viewer-mobile-container">
         {/* Top Navbar */}
         <header className="viewer-navbar">
@@ -376,10 +400,44 @@ export default function AppViewer() {
           </div>
 
           <div className="navbar-right">
-            <a 
-              href={`/download/${activeManual.slug}`} 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <button
+              className={`navbar-theme-btn ${isThemeMenuOpen ? 'is-open' : ''}`}
+              onClick={() => setIsThemeMenuOpen(prev => !prev)}
+              title="Ganti tone warna"
+            >
+              <Palette size={16} />
+            </button>
+
+            {isThemeMenuOpen && (
+              <>
+                <div className="theme-popover-backdrop" onClick={() => setIsThemeMenuOpen(false)} />
+                <div className="theme-popover">
+                  {THEME_OPTIONS.map(option => (
+                    <button
+                      key={option.id}
+                      className={`theme-option-btn ${theme === option.id ? 'is-active' : ''}`}
+                      onClick={() => {
+                        setTheme(option.id);
+                        setIsThemeMenuOpen(false);
+                      }}
+                    >
+                      <span className="theme-swatch-dot" style={{ backgroundColor: option.swatch }} />
+                      {option.label}
+                      {theme === option.id && (
+                        <span className="theme-option-check">
+                          <Check size={14} />
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <a
+              href={`/download/${activeManual.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="navbar-download-btn"
               title="Unduh file PDF"
             >
@@ -471,7 +529,7 @@ export default function AppViewer() {
                     key={item.slug}
                     className={`catalog-item-btn ${activeSlug === item.slug ? 'is-active' : ''}`}
                     onClick={() => handleSelectManual(item.slug)}
-                    style={{ marginBottom: '0.5rem', border: '1px solid rgba(197, 168, 128, 0.15)' }}
+                    style={{ marginBottom: '0.5rem', border: '1px solid rgba(var(--color-accent-rgb), 0.35)' }}
                   >
                     <div className="item-dot" />
                     <span className="item-title" style={{ fontWeight: 700 }}>[Buku Lengkap] {item.title}</span>
@@ -496,7 +554,7 @@ export default function AppViewer() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                         <div className="item-dot" />
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-                          <span style={{ fontSize: '0.6rem', color: '#8f6f3f', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                          <span className="catalog-item-brand-label">
                             {item.brand}
                           </span>
                           <span className="item-title" style={{ 
@@ -509,15 +567,7 @@ export default function AppViewer() {
                           </span>
                         </div>
                       </div>
-                      <span style={{ 
-                        fontSize: '0.7rem', 
-                        color: '#8f6f3f', 
-                        fontWeight: 600, 
-                        flexShrink: 0,
-                        backgroundColor: 'rgba(143, 111, 63, 0.1)',
-                        padding: '2px 6px',
-                        borderRadius: '4px'
-                      }}>
+                      <span className="catalog-item-code-badge">
                         {item.code}
                       </span>
                     </button>
@@ -527,7 +577,7 @@ export default function AppViewer() {
 
               {filteredManuals.length === 0 && (
                 <div className="catalog-no-results">
-                  <Info size={20} style={{ color: '#c5a880', marginBottom: '8px' }} />
+                  <Info size={20} style={{ color: 'var(--color-accent)', marginBottom: '8px' }} />
                   <p>Tidak ada manual book yang cocok.</p>
                 </div>
               )}
