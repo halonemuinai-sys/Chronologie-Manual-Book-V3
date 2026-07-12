@@ -44,7 +44,7 @@ interface TocEntry {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'brands' | 'manuals' | 'toc'>('brands');
+  const [activeTab, setActiveTab] = useState<'brands' | 'manuals' | 'toc' | 'theme'>('brands');
   const [sessionLoading, setSessionLoading] = useState(true);
 
   // Database Data (Defaulting to 'chronologie' schema configured in supabaseClient.ts)
@@ -62,7 +62,6 @@ export default function AdminDashboard() {
 
   // Site-wide default color tone for the public Viewer
   const [viewerTheme, setViewerTheme] = useState<ThemeId>(DEFAULT_THEME);
-  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
 
   // QR Code modal for a manual's public Viewer link
   const [qrManual, setQrManual] = useState<Manual | null>(null);
@@ -172,7 +171,6 @@ export default function AdminDashboard() {
 
   // Change site-wide default color tone for the public Viewer
   const handleChangeViewerTheme = async (themeId: ThemeId) => {
-    setIsThemeMenuOpen(false);
     const previousTheme = viewerTheme;
     setViewerTheme(themeId);
 
@@ -500,6 +498,15 @@ export default function AdminDashboard() {
             <span>3. Kelola Daftar Isi</span>
           </button>
 
+          <button
+            onClick={() => setActiveTab('theme')}
+            className={`admin-side-btn ${activeTab === 'theme' ? 'active' : ''}`}
+            style={sideBtnStyle(activeTab === 'theme')}
+          >
+            <Palette size={16} />
+            <span>4. Tema Viewer Publik</span>
+          </button>
+
           <div style={{ marginTop: 'auto', padding: '16px', backgroundColor: '#18191c', borderRadius: '8px', border: '1px solid rgba(197, 168, 128, 0.05)' }}>
             <span style={{ fontSize: '0.75rem', color: '#c5a880', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Info Publik</span>
             <a 
@@ -752,74 +759,16 @@ export default function AdminDashboard() {
                 <div style={formBoxStyle}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h3 style={{ ...formTitleStyle, marginBottom: 0 }}>Daftar Buku Manual</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ position: 'relative' }}>
-                        <button
-                          type="button"
-                          onClick={() => setIsThemeMenuOpen(prev => !prev)}
-                          style={themeButtonStyle(isThemeMenuOpen)}
-                          title="Atur tone warna default halaman Viewer publik"
-                        >
-                          <Palette size={14} />
-                          <span
-                            style={{
-                              width: '12px',
-                              height: '12px',
-                              borderRadius: '50%',
-                              backgroundColor: THEME_OPTIONS.find(t => t.id === viewerTheme)?.swatch,
-                              border: '1px solid rgba(255,255,255,0.2)'
-                            }}
-                          />
-                          <span>Tone Viewer</span>
-                        </button>
-
-                        {isThemeMenuOpen && (
-                          <>
-                            <div
-                              onClick={() => setIsThemeMenuOpen(false)}
-                              style={{ position: 'fixed', inset: 0, zIndex: 1090 }}
-                            />
-                            <div style={themePopoverStyle}>
-                              <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, padding: '4px 8px 8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Tone Warna Viewer Publik
-                              </div>
-                              {THEME_OPTIONS.map(option => (
-                                <button
-                                  key={option.id}
-                                  type="button"
-                                  onClick={() => handleChangeViewerTheme(option.id)}
-                                  style={themeOptionStyle(viewerTheme === option.id)}
-                                >
-                                  <span
-                                    style={{
-                                      width: '16px',
-                                      height: '16px',
-                                      borderRadius: '50%',
-                                      backgroundColor: option.swatch,
-                                      border: '1px solid rgba(255,255,255,0.15)',
-                                      flexShrink: 0
-                                    }}
-                                  />
-                                  <span style={{ flex: 1 }}>{option.label}</span>
-                                  {viewerTheme === option.id && <Check size={13} style={{ color: '#c5a880' }} />}
-                                </button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      <select
-                        value={selectedBrandId}
-                        onChange={(e) => setSelectedBrandId(e.target.value)}
-                        style={{ ...selectStyle, width: '200px', padding: '6px 12px' }}
-                      >
-                        <option value="">Semua Brand</option>
-                        {brands.map(brand => (
-                          <option key={brand.id} value={brand.id}>{brand.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                    <select
+                      value={selectedBrandId}
+                      onChange={(e) => setSelectedBrandId(e.target.value)}
+                      style={{ ...selectStyle, width: '200px', padding: '6px 12px' }}
+                    >
+                      <option value="">Semua Brand</option>
+                      {brands.map(brand => (
+                        <option key={brand.id} value={brand.id}>{brand.name}</option>
+                      ))}
+                    </select>
                   </div>
                   
                   <div style={{ overflowX: 'auto' }}>
@@ -1051,6 +1000,91 @@ export default function AdminDashboard() {
               )}
             </div>
           )}
+
+          {/* TAB 4: THEME (COLOR TONE FOR PUBLIC VIEWER) */}
+          {activeTab === 'theme' && (
+            <div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#fff', marginBottom: '8px' }}>
+                4. Tema Viewer Publik
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: '#a1a1aa', marginBottom: '24px', maxWidth: '640px', lineHeight: 1.6 }}>
+                Pilih tone warna yang akan dipakai semua pengunjung di halaman Viewer publik. Cocok untuk membedakan
+                identitas visual tiap brand (Cali/Raymond Weil, Bvlgari, Omega, dst) saat manual book brand tersebut dirilis.
+              </p>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: '20px'
+              }}>
+                {THEME_OPTIONS.map(option => {
+                  const isActive = viewerTheme === option.id;
+                  return (
+                    <div key={option.id} style={themeCardStyle(isActive)}>
+                      <div style={{
+                        height: '90px',
+                        borderRadius: '8px',
+                        backgroundColor: option.preview.bg,
+                        marginBottom: '14px',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        border: '1px solid rgba(255,255,255,0.06)'
+                      }}>
+                        <div style={{
+                          position: 'absolute',
+                          top: '10px',
+                          left: '10px',
+                          right: '10px',
+                          height: '10px',
+                          borderRadius: '5px',
+                          backgroundColor: option.preview.text,
+                          opacity: 0.85
+                        }} />
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '12px',
+                          left: '10px',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: option.preview.accent
+                        }} />
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '18px',
+                          left: '52px',
+                          right: '12px',
+                          height: '8px',
+                          borderRadius: '4px',
+                          backgroundColor: option.preview.text,
+                          opacity: 0.4
+                        }} />
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>{option.label}</span>
+                        {isActive && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: '#4ade80', fontWeight: 600 }}>
+                            <Check size={13} />
+                            Aktif
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={isActive}
+                        onClick={() => handleChangeViewerTheme(option.id)}
+                        style={themeCardBtnStyle(isActive)}
+                      >
+                        {isActive ? 'Sedang Dipakai' : 'Jadikan Aktif'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
@@ -1232,51 +1266,27 @@ const tdStyle = {
   verticalAlign: 'middle'
 };
 
-const themeButtonStyle = (isOpen: boolean) => ({
-  backgroundColor: isOpen ? 'rgba(197, 168, 128, 0.15)' : '#18191c',
-  border: `1px solid ${isOpen ? '#c5a880' : 'rgba(197, 168, 128, 0.2)'}`,
-  color: '#fff',
-  padding: '6px 12px',
-  borderRadius: '8px',
-  fontSize: '0.8rem',
-  fontWeight: 600,
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px',
-  cursor: 'pointer',
-  transition: 'all 0.2s',
-  fontFamily: 'Outfit, sans-serif'
+const themeCardStyle = (isActive: boolean) => ({
+  backgroundColor: '#121316',
+  border: `1px solid ${isActive ? '#c5a880' : 'rgba(197, 168, 128, 0.08)'}`,
+  borderRadius: '12px',
+  padding: '16px',
+  boxShadow: isActive ? '0 0 0 1px rgba(197, 168, 128, 0.3)' : '0 4px 20px rgba(0,0,0,0.15)',
+  transition: 'border-color 0.2s, box-shadow 0.2s'
 });
 
-const themePopoverStyle = {
-  position: 'absolute' as const,
-  top: 'calc(100% + 8px)',
-  right: 0,
-  backgroundColor: '#18191c',
-  border: '1px solid rgba(197, 168, 128, 0.2)',
-  borderRadius: '10px',
-  padding: '6px',
-  minWidth: '190px',
-  boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
-  zIndex: 1100
-};
-
-const themeOptionStyle = (isActive: boolean) => ({
+const themeCardBtnStyle = (isActive: boolean) => ({
   width: '100%',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  padding: '8px',
-  backgroundColor: isActive ? 'rgba(197, 168, 128, 0.12)' : 'transparent',
-  border: 'none',
-  borderRadius: '6px',
-  color: '#e2e8f0',
-  fontSize: '0.8rem',
+  backgroundColor: isActive ? 'transparent' : '#c5a880',
+  color: isActive ? '#4ade80' : '#0b0c0e',
+  border: isActive ? '1px solid rgba(74, 222, 128, 0.3)' : 'none',
+  padding: '9px',
+  borderRadius: '8px',
   fontWeight: 600,
-  cursor: 'pointer',
-  textAlign: 'left' as const,
-  fontFamily: 'Outfit, sans-serif',
-  transition: 'background-color 0.15s'
+  fontSize: '0.8rem',
+  cursor: isActive ? 'default' : 'pointer',
+  transition: 'background-color 0.2s',
+  fontFamily: 'Outfit, sans-serif'
 });
 
 const deleteBtnStyle = {

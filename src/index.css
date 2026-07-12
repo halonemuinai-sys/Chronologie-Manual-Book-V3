@@ -59,6 +59,7 @@ body {
   --color-accent: #e6d8a8;
   --color-accent-rgb: 230, 216, 168;
   --color-accent-hover: #dfc198;
+  --color-accent-contrast: #442a07;
 }
 
 .app-shell[data-theme="ocean"] {
@@ -74,6 +75,7 @@ body {
   --color-accent: #a8c8e6;
   --color-accent-rgb: 168, 200, 230;
   --color-accent-hover: #98b9df;
+  --color-accent-contrast: #10243e;
 }
 
 .app-shell[data-theme="emerald"] {
@@ -89,6 +91,7 @@ body {
   --color-accent: #a8e6c0;
   --color-accent-rgb: 168, 230, 192;
   --color-accent-hover: #98dfb2;
+  --color-accent-contrast: #0d3d24;
 }
 
 .app-shell[data-theme="rose"] {
@@ -104,6 +107,39 @@ body {
   --color-accent: #e6a8c8;
   --color-accent-rgb: 230, 168, 200;
   --color-accent-hover: #dd98bc;
+  --color-accent-contrast: #4a1029;
+}
+
+.app-shell[data-theme="bvlgari"] {
+  /* Bvlgari — hitam elegan dengan aksen emas */
+  --color-bg-page: #141414;
+  --color-bg-container: #1b1b1a;
+  --color-surface: #201f1c;
+  --color-surface-alt: #2a2925;
+  --color-text-primary: #f3ead9;
+  --color-text-primary-rgb: 243, 234, 217;
+  --color-text-accent: #cda45e;
+  --color-text-accent-rgb: 205, 164, 94;
+  --color-accent: #d4af37;
+  --color-accent-rgb: 212, 175, 55;
+  --color-accent-hover: #c29a2e;
+  --color-accent-contrast: #1a1408;
+}
+
+.app-shell[data-theme="omega"] {
+  /* Omega — biru navy dengan aksen steel/silver */
+  --color-bg-page: #eef0f2;
+  --color-bg-container: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-surface-alt: #e8ebee;
+  --color-text-primary: #0a1f33;
+  --color-text-primary-rgb: 10, 31, 51;
+  --color-text-accent: #4a6b85;
+  --color-text-accent-rgb: 74, 107, 133;
+  --color-accent: #c7d3dc;
+  --color-accent-rgb: 199, 211, 220;
+  --color-accent-hover: #b3c2ce;
+  --color-accent-contrast: #0a1f33;
 }
 
 /* App Shell (Mobile Viewport Frame on Desktop) */
@@ -186,6 +222,11 @@ body {
 .navbar-toggle-sidebar-btn:hover {
   background-color: var(--color-accent);
   border-color: var(--color-text-accent);
+  color: var(--color-accent-contrast);
+}
+
+.navbar-toggle-sidebar-btn:hover .navbar-toggle-btn-text {
+  color: var(--color-accent-contrast);
 }
 
 .navbar-doc-info {
@@ -225,7 +266,7 @@ body {
 .navbar-download-btn {
   background-color: var(--color-accent);
   border: none;
-  color: var(--color-text-primary);
+  color: var(--color-accent-contrast);
   width: 36px;
   height: 36px;
   display: flex;
