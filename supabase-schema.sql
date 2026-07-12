@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS chronologie.manuals (
     title TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
     file_path TEXT NOT NULL, -- Menyimpan URL berkas PDF
+    theme TEXT, -- Tone warna khusus buku ini (kosong = ikut tema default global)
     created_at TIMESTAMPTZ DEFAULT now()
 );
 

@@ -32,6 +32,7 @@ interface Manual {
   title: string;
   slug: string;
   file_path: string;
+  theme: string | null;
 }
 
 interface TocEntry {
@@ -79,6 +80,7 @@ export default function AdminDashboard() {
   const [manualFilePathType, setManualFilePathType] = useState<'upload' | 'local'>('upload');
   const [manualLocalPath, setManualLocalPath] = useState('');
   const [manualFile, setManualFile] = useState<File | null>(null);
+  const [manualTheme, setManualTheme] = useState<'' | ThemeId>('');
 
   // TOC Form State
   const [tocTitle, setTocTitle] = useState('');
@@ -287,11 +289,12 @@ export default function AdminDashboard() {
       }
 
       const { error: dbError } = await supabase.from('manuals').insert([
-        { 
-          brand_id: manualBrandId, 
-          title: manualTitle, 
+        {
+          brand_id: manualBrandId,
+          title: manualTitle,
           slug: manualSlug.toLowerCase().trim(),
-          file_path: finalFilePath
+          file_path: finalFilePath,
+          theme: manualTheme || null
         }
       ]);
 
@@ -302,12 +305,31 @@ export default function AdminDashboard() {
       setManualSlug('');
       setManualLocalPath('');
       setManualFile(null);
+      setManualTheme('');
       fetchManuals(selectedBrandId || undefined);
 
     } catch (err: any) {
       showMsg(err.message || 'Gagal menyimpan buku manual.', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Change the color tone for a single manual (overrides the global default)
+  const handleChangeManualTheme = async (manualId: string, themeId: '' | ThemeId) => {
+    const newTheme = themeId || null;
+    setManuals(prev => prev.map(m => m.id === manualId ? { ...m, theme: newTheme } : m));
+
+    const { error } = await supabase
+      .from('manuals')
+      .update({ theme: newTheme })
+      .eq('id', manualId);
+
+    if (error) {
+      showMsg(`Gagal mengubah tema buku: ${error.message}`, 'error');
+      fetchManuals(selectedBrandId || undefined);
+    } else {
+      showMsg('Tema buku manual berhasil diperbarui.', 'success');
     }
   };
 
@@ -676,6 +698,20 @@ export default function AdminDashboard() {
                   </div>
 
                   <div style={formFieldStyle}>
+                    <label style={labelStyle}>Tema Warna Buku Ini</label>
+                    <select
+                      value={manualTheme}
+                      onChange={(e) => setManualTheme(e.target.value as '' | ThemeId)}
+                      style={selectStyle}
+                    >
+                      <option value="">-- Ikuti Tema Default Global --</option>
+                      {THEME_OPTIONS.map(option => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={formFieldStyle}>
                     <label style={labelStyle}>Metode Sumber File PDF</label>
                     <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
@@ -778,6 +814,7 @@ export default function AdminDashboard() {
                           <th style={thStyle}>Judul Buku</th>
                           <th style={thStyle}>Slug</th>
                           <th style={thStyle}>Tipe File</th>
+                          <th style={thStyle}>Tema</th>
                           <th style={thStyle}>Tautan Berkas</th>
                           <th style={{ ...thStyle, textAlign: 'center', width: '110px' }}>Aksi</th>
                         </tr>
@@ -802,8 +839,20 @@ export default function AdminDashboard() {
                                 </span>
                               </td>
                               <td style={tdStyle}>
-                                <a 
-                                  href={`${window.location.origin}/${manual.slug}`} 
+                                <select
+                                  value={manual.theme || ''}
+                                  onChange={(e) => handleChangeManualTheme(manual.id, e.target.value as '' | ThemeId)}
+                                  style={{ ...selectStyle, padding: '5px 8px', fontSize: '0.78rem', width: '150px' }}
+                                >
+                                  <option value="">Default Global</option>
+                                  {THEME_OPTIONS.map(option => (
+                                    <option key={option.id} value={option.id}>{option.label}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td style={tdStyle}>
+                                <a
+                                  href={`${window.location.origin}/${manual.slug}`}
                                   target="_blank" 
                                   rel="noopener noreferrer" 
                                   style={{ color: '#c5a880', textDecoration: 'underline', fontSize: '0.8rem' }}
@@ -834,7 +883,7 @@ export default function AdminDashboard() {
                         })}
                         {manuals.length === 0 && (
                           <tr>
-                            <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', color: '#a1a1aa', padding: '30px' }}>
+                            <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', color: '#a1a1aa', padding: '30px' }}>
                               Belum ada buku manual terdaftar untuk brand ini.
                             </td>
                           </tr>

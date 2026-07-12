@@ -26,6 +26,7 @@ interface ManualItem {
   cleanedTitle: string;
   code: string;
   page: number;
+  theme?: string | null;
 }
 
 // Table of Contents page mapping for the single main PDF file (Static Fallback)
@@ -126,8 +127,9 @@ export default function AppViewer() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
-  // Color theme (tone) — controlled by the admin from the Dashboard, read-only here.
-  const [theme, setTheme] = useState<ThemeId>(DEFAULT_THEME);
+  // Site-wide default color tone — controlled by the admin from the Dashboard.
+  // A manual can override this with its own theme (see activeManual.theme below).
+  const [globalDefaultTheme, setGlobalDefaultTheme] = useState<ThemeId>(DEFAULT_THEME);
 
   useEffect(() => {
     const loadDefaultTheme = async () => {
@@ -139,7 +141,7 @@ export default function AppViewer() {
           .single();
         if (error) throw error;
         if (data && isThemeId(data.default_viewer_theme)) {
-          setTheme(data.default_viewer_theme);
+          setGlobalDefaultTheme(data.default_viewer_theme);
         }
       } catch (err) {
         console.warn('Failed to load default viewer theme from Supabase, using local default. Error:', err);
@@ -205,7 +207,8 @@ export default function AppViewer() {
               brand: brandName,
               cleanedTitle: manual.title,
               code: 'Full Book',
-              page: 1
+              page: 1,
+              theme: manual.theme
             });
 
             // Register all TOC entries linked to this manual
@@ -227,7 +230,8 @@ export default function AppViewer() {
                 brand: brandName,
                 cleanedTitle: entry.title,
                 code: entry.code,
-                page: entry.page_number
+                page: entry.page_number,
+                theme: manual.theme
               });
             });
           });
@@ -260,6 +264,14 @@ export default function AppViewer() {
     const found = activeManualsList.find(item => item.slug === activeSlug);
     return found || activeManualsList.find(item => item.slug === defaultSlug) || activeManualsList[0];
   }, [activeManualsList, activeSlug]);
+
+  // A manual's own theme (set in Admin) overrides the site-wide default.
+  const resolvedTheme = useMemo((): ThemeId => {
+    if (activeManual?.theme && isThemeId(activeManual.theme)) {
+      return activeManual.theme;
+    }
+    return globalDefaultTheme;
+  }, [activeManual, globalDefaultTheme]);
 
   // Main PDF File to fetch
   const pdfUrl = useMemo(() => {
@@ -377,7 +389,7 @@ export default function AppViewer() {
   }
 
   return (
-    <div className="app-shell" data-theme={theme}>
+    <div className="app-shell" data-theme={resolvedTheme}>
       <div className="viewer-mobile-container">
         {/* Top Navbar */}
         <header className="viewer-navbar">
