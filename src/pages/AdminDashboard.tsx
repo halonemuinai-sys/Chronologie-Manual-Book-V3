@@ -456,6 +456,15 @@ export default function AdminDashboard() {
         </div>
       </header>
 
+      {/* Floating Toast Notification */}
+      {message && (
+        <div className="admin-toast-stack">
+          <div className={`admin-toast admin-toast--${message.type}`}>
+            {message.text}
+          </div>
+        </div>
+      )}
+
       {/* Main Panel Content */}
       <div className="admin-body">
         {/* Admin Sidebar Navigation */}
@@ -503,15 +512,9 @@ export default function AdminDashboard() {
 
         {/* Dynamic Content Panel */}
         <main className="admin-main">
-          {message && (
-            <div className={`admin-message admin-message--${message.type}`}>
-              {message.text}
-            </div>
-          )}
-
           {/* TAB 1: BRANDS */}
           {activeTab === 'brands' && (
-            <div>
+            <div className="admin-tab-panel">
               <h2 className="admin-section-title">1. Kelola Brand Jam Tangan</h2>
 
               <div className="admin-grid-2">
@@ -594,7 +597,7 @@ export default function AdminDashboard() {
 
           {/* TAB 2: MANUALS */}
           {activeTab === 'manuals' && (
-            <div>
+            <div className="admin-tab-panel">
               <h2 className="admin-section-title">2. Kelola Buku Manual (1 PDF per Brand)</h2>
 
               <div className="admin-grid-2">
@@ -829,7 +832,7 @@ export default function AdminDashboard() {
 
           {/* TAB 3: TOC (TABLE OF CONTENTS) */}
           {activeTab === 'toc' && (
-            <div>
+            <div className="admin-tab-panel">
               <h2 className="admin-section-title">3. Kelola Daftar Isi (Lompat Halaman PDF)</h2>
 
               <div className="admin-filter-bar">
@@ -974,7 +977,7 @@ export default function AdminDashboard() {
 
           {/* TAB 4: THEME (COLOR TONE FOR PUBLIC VIEWER) */}
           {activeTab === 'theme' && (
-            <div>
+            <div className="admin-tab-panel">
               <h2 className="admin-section-title" style={{ marginBottom: '8px' }}>4. Tema Viewer Publik</h2>
               <p className="admin-section-desc">
                 Pilih tone warna yang akan dipakai semua pengunjung di halaman Viewer publik. Cocok untuk membedakan
