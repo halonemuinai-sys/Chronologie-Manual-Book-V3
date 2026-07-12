@@ -17,8 +17,13 @@ import {
   Check,
   QrCode,
   X,
-  Download
+  Download,
+  Sun,
+  Moon
 } from 'lucide-react';
+
+type AdminThemeMode = 'dark' | 'light';
+const ADMIN_THEME_STORAGE_KEY = 'adminDashboardTheme';
 
 interface Brand {
   id: string;
@@ -47,6 +52,20 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'brands' | 'manuals' | 'toc' | 'theme'>('brands');
   const [sessionLoading, setSessionLoading] = useState(true);
+
+  // Admin panel's own light/dark mode (independent from the public Viewer's tone)
+  const [adminThemeMode, setAdminThemeMode] = useState<AdminThemeMode>(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem(ADMIN_THEME_STORAGE_KEY) : null;
+    return saved === 'light' ? 'light' : 'dark';
+  });
+
+  const handleToggleAdminTheme = () => {
+    setAdminThemeMode(prev => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      window.localStorage.setItem(ADMIN_THEME_STORAGE_KEY, next);
+      return next;
+    });
+  };
 
   // Database Data (Defaulting to 'chronologie' schema configured in supabaseClient.ts)
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -239,7 +258,7 @@ export default function AdminDashboard() {
   // Delete Brand
   const handleDeleteBrand = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus brand ini? Semua buku manual dan daftar isi di dalamnya juga akan terhapus.')) return;
-    
+
     const { error } = await supabase.from('brands').delete().eq('id', id);
     if (error) {
       showMsg(`Gagal menghapus: ${error.message}`, 'error');
@@ -403,100 +422,47 @@ export default function AdminDashboard() {
 
   if (sessionLoading) {
     return (
-      <div style={{
-        height: '100vh',
-        backgroundColor: '#0b0c0e',
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'Outfit, sans-serif'
-      }}>
-        <div className="spinner" />
-        <p style={{ marginLeft: '16px' }}>Memeriksa autentikasi...</p>
+      <div className="admin-shell" data-admin-theme={adminThemeMode} style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div className="spinner" />
+          <p style={{ marginLeft: '16px' }}>Memeriksa autentikasi...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#0b0c0e',
-      color: '#e2e8f0',
-      fontFamily: 'Outfit, -apple-system, sans-serif',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
+    <div className="admin-shell" data-admin-theme={adminThemeMode}>
       {/* Top Admin Navbar */}
-      <header style={{
-        height: '64px',
-        backgroundColor: '#121316',
-        borderBottom: '1px solid rgba(197, 168, 128, 0.12)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 24px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{
-            fontSize: '0.65rem',
-            fontWeight: 700,
-            backgroundColor: '#c5a880',
-            color: '#0b0c0e',
-            padding: '3px 8px',
-            borderRadius: '4px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em'
-          }}>
-            CMS
-          </span>
-          <span style={{ fontWeight: 600, color: '#fff', fontSize: '1.05rem' }}>
-            Chronologie Admin Panel
-          </span>
+      <header className="admin-header">
+        <div className="admin-header-brand">
+          <span className="admin-badge-cms">CMS</span>
+          <span className="admin-header-title">Chronologie Admin Panel</span>
         </div>
 
-        <button
-          onClick={handleLogout}
-          style={{
-            backgroundColor: 'transparent',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#f87171',
-            padding: '6px 12px',
-            borderRadius: '6px',
-            fontSize: '0.85rem',
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            fontFamily: 'Outfit, sans-serif'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-        >
-          <LogOut size={14} />
-          Keluar
-        </button>
+        <div className="admin-header-actions">
+          <button
+            onClick={handleToggleAdminTheme}
+            className="admin-theme-toggle-btn"
+            title={adminThemeMode === 'dark' ? 'Ganti ke Light Mode' : 'Ganti ke Dark Mode'}
+          >
+            {adminThemeMode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+
+          <button onClick={handleLogout} className="admin-logout-btn">
+            <LogOut size={14} />
+            Keluar
+          </button>
+        </div>
       </header>
 
       {/* Main Panel Content */}
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      <div className="admin-body">
         {/* Admin Sidebar Navigation */}
-        <aside style={{
-          width: '240px',
-          backgroundColor: '#111215',
-          borderRight: '1px solid rgba(197, 168, 128, 0.08)',
-          padding: '24px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
+        <aside className="admin-sidebar">
           <button
             onClick={() => setActiveTab('brands')}
-            className={`admin-side-btn ${activeTab === 'brands' ? 'active' : ''}`}
-            style={sideBtnStyle(activeTab === 'brands')}
+            className={`admin-nav-btn ${activeTab === 'brands' ? 'is-active' : ''}`}
           >
             <FolderPlus size={16} />
             <span>1. Kelola Brand</span>
@@ -504,8 +470,7 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab('manuals')}
-            className={`admin-side-btn ${activeTab === 'manuals' ? 'active' : ''}`}
-            style={sideBtnStyle(activeTab === 'manuals')}
+            className={`admin-nav-btn ${activeTab === 'manuals' ? 'is-active' : ''}`}
           >
             <BookOpen size={16} />
             <span>2. Kelola Buku Manual</span>
@@ -513,8 +478,7 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab('toc')}
-            className={`admin-side-btn ${activeTab === 'toc' ? 'active' : ''}`}
-            style={sideBtnStyle(activeTab === 'toc')}
+            className={`admin-nav-btn ${activeTab === 'toc' ? 'is-active' : ''}`}
           >
             <ListPlus size={16} />
             <span>3. Kelola Daftar Isi</span>
@@ -522,22 +486,15 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab('theme')}
-            className={`admin-side-btn ${activeTab === 'theme' ? 'active' : ''}`}
-            style={sideBtnStyle(activeTab === 'theme')}
+            className={`admin-nav-btn ${activeTab === 'theme' ? 'is-active' : ''}`}
           >
             <Palette size={16} />
             <span>4. Tema Viewer Publik</span>
           </button>
 
-          <div style={{ marginTop: 'auto', padding: '16px', backgroundColor: '#18191c', borderRadius: '8px', border: '1px solid rgba(197, 168, 128, 0.05)' }}>
-            <span style={{ fontSize: '0.75rem', color: '#c5a880', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Info Publik</span>
-            <a 
-              href="/" 
-              target="_blank" 
-              style={{ fontSize: '0.8rem', color: '#a1a1aa', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#a1a1aa'}
-            >
+          <div className="admin-sidebar-info-box">
+            <span className="admin-sidebar-info-title">Info Publik</span>
+            <a href="/" target="_blank" className="admin-sidebar-info-link">
               Lihat Portal Utama
               <ChevronRight size={12} />
             </a>
@@ -545,18 +502,9 @@ export default function AdminDashboard() {
         </aside>
 
         {/* Dynamic Content Panel */}
-        <main style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+        <main className="admin-main">
           {message && (
-            <div style={{
-              backgroundColor: message.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-              border: `1px solid ${message.type === 'success' ? 'rgba(34, 197, 94, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
-              color: message.type === 'success' ? '#4ade80' : '#f87171',
-              padding: '14px 20px',
-              borderRadius: '8px',
-              fontSize: '0.9rem',
-              marginBottom: '24px',
-              lineHeight: 1.5
-            }}>
+            <div className={`admin-message admin-message--${message.type}`}>
               {message.text}
             </div>
           )}
@@ -564,66 +512,64 @@ export default function AdminDashboard() {
           {/* TAB 1: BRANDS */}
           {activeTab === 'brands' && (
             <div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#fff', marginBottom: '24px' }}>
-                1. Kelola Brand Jam Tangan
-              </h2>
+              <h2 className="admin-section-title">1. Kelola Brand Jam Tangan</h2>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px', alignItems: 'start' }}>
+              <div className="admin-grid-2">
                 {/* Form Add Brand */}
-                <form onSubmit={handleAddBrand} style={formBoxStyle}>
-                  <h3 style={formTitleStyle}>Tambah Brand Baru</h3>
-                  
-                  <div style={formFieldStyle}>
-                    <label style={labelStyle}>Nama Brand</label>
-                    <input 
-                      type="text" 
-                      required 
-                      placeholder="Cali / Raymond Weil" 
+                <form onSubmit={handleAddBrand} className="admin-card">
+                  <h3 className="admin-card-title">Tambah Brand Baru</h3>
+
+                  <div className="admin-field">
+                    <label className="admin-label">Nama Brand</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Cali / Raymond Weil"
                       value={brandName}
                       onChange={(e) => setBrandName(e.target.value)}
-                      style={inputStyle}
+                      className="admin-input"
                     />
                   </div>
 
-                  <div style={formFieldStyle}>
-                    <label style={labelStyle}>Slug URL (Huruf kecil & tanda hubung)</label>
-                    <input 
-                      type="text" 
-                      required 
-                      placeholder="cali-raymond-weil" 
+                  <div className="admin-field">
+                    <label className="admin-label">Slug URL (Huruf kecil & tanda hubung)</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="cali-raymond-weil"
                       value={brandSlug}
                       onChange={(e) => setBrandSlug(e.target.value)}
-                      style={inputStyle}
+                      className="admin-input"
                     />
                   </div>
 
-                  <button type="submit" disabled={loading} style={btnStyle}>
+                  <button type="submit" disabled={loading} className="admin-btn-primary">
                     <Plus size={16} />
                     Simpan Brand
                   </button>
                 </form>
 
                 {/* List Brands */}
-                <div style={formBoxStyle}>
-                  <h3 style={formTitleStyle}>Daftar Brand Aktif</h3>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={tableStyle}>
+                <div className="admin-card">
+                  <h3 className="admin-card-title">Daftar Brand Aktif</h3>
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
                       <thead>
                         <tr>
-                          <th style={thStyle}>Nama Brand</th>
-                          <th style={thStyle}>Slug URL</th>
-                          <th style={{ ...thStyle, textAlign: 'center', width: '80px' }}>Aksi</th>
+                          <th className="admin-th">Nama Brand</th>
+                          <th className="admin-th">Slug URL</th>
+                          <th className="admin-th" style={{ textAlign: 'center', width: '80px' }}>Aksi</th>
                         </tr>
                       </thead>
                       <tbody>
                         {brands.map(brand => (
-                          <tr key={brand.id} style={trStyle}>
-                            <td style={tdStyle}>{brand.name}</td>
-                            <td style={{ ...tdStyle, color: '#c5a880' }}>/{brand.slug}</td>
-                            <td style={{ ...tdStyle, textAlign: 'center' }}>
-                              <button 
+                          <tr key={brand.id} className="admin-tr">
+                            <td className="admin-td">{brand.name}</td>
+                            <td className="admin-td admin-td-accent">/{brand.slug}</td>
+                            <td className="admin-td" style={{ textAlign: 'center' }}>
+                              <button
                                 onClick={() => handleDeleteBrand(brand.id)}
-                                style={deleteBtnStyle}
+                                className="admin-icon-btn admin-icon-btn--danger"
                                 title="Hapus Brand"
                               >
                                 <Trash2 size={15} />
@@ -633,7 +579,7 @@ export default function AdminDashboard() {
                         ))}
                         {brands.length === 0 && (
                           <tr>
-                            <td colSpan={3} style={{ ...tdStyle, textAlign: 'center', color: '#a1a1aa', padding: '30px' }}>
+                            <td colSpan={3} className="admin-empty-row">
                               Belum ada brand terdaftar.
                             </td>
                           </tr>
@@ -649,22 +595,20 @@ export default function AdminDashboard() {
           {/* TAB 2: MANUALS */}
           {activeTab === 'manuals' && (
             <div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#fff', marginBottom: '24px' }}>
-                2. Kelola Buku Manual (1 PDF per Brand)
-              </h2>
+              <h2 className="admin-section-title">2. Kelola Buku Manual (1 PDF per Brand)</h2>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px', alignItems: 'start' }}>
+              <div className="admin-grid-2">
                 {/* Form Add Manual */}
-                <form onSubmit={handleAddManual} style={formBoxStyle}>
-                  <h3 style={formTitleStyle}>Tambah Buku Manual</h3>
+                <form onSubmit={handleAddManual} className="admin-card">
+                  <h3 className="admin-card-title">Tambah Buku Manual</h3>
 
-                  <div style={formFieldStyle}>
-                    <label style={labelStyle}>Pilih Brand</label>
+                  <div className="admin-field">
+                    <label className="admin-label">Pilih Brand</label>
                     <select
                       required
                       value={manualBrandId}
                       onChange={(e) => setManualBrandId(e.target.value)}
-                      style={selectStyle}
+                      className="admin-select"
                     >
                       <option value="">-- Pilih Brand --</option>
                       {brands.map(brand => (
@@ -672,37 +616,37 @@ export default function AdminDashboard() {
                       ))}
                     </select>
                   </div>
-                  
-                  <div style={formFieldStyle}>
-                    <label style={labelStyle}>Judul Buku Manual</label>
-                    <input 
-                      type="text" 
-                      required 
-                      placeholder="Raymond Weil Manual Guide" 
+
+                  <div className="admin-field">
+                    <label className="admin-label">Judul Buku Manual</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Raymond Weil Manual Guide"
                       value={manualTitle}
                       onChange={(e) => setManualTitle(e.target.value)}
-                      style={inputStyle}
+                      className="admin-input"
                     />
                   </div>
 
-                  <div style={formFieldStyle}>
-                    <label style={labelStyle}>Slug Dokumen</label>
-                    <input 
-                      type="text" 
-                      required 
-                      placeholder="raymond-weil-manual-guide" 
+                  <div className="admin-field">
+                    <label className="admin-label">Slug Dokumen</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="raymond-weil-manual-guide"
                       value={manualSlug}
                       onChange={(e) => setManualSlug(e.target.value)}
-                      style={inputStyle}
+                      className="admin-input"
                     />
                   </div>
 
-                  <div style={formFieldStyle}>
-                    <label style={labelStyle}>Tema Warna Buku Ini</label>
+                  <div className="admin-field">
+                    <label className="admin-label">Tema Warna Buku Ini</label>
                     <select
                       value={manualTheme}
                       onChange={(e) => setManualTheme(e.target.value as '' | ThemeId)}
-                      style={selectStyle}
+                      className="admin-select"
                     >
                       <option value="">-- Ikuti Tema Default Global --</option>
                       {THEME_OPTIONS.map(option => (
@@ -711,20 +655,20 @@ export default function AdminDashboard() {
                     </select>
                   </div>
 
-                  <div style={formFieldStyle}>
-                    <label style={labelStyle}>Metode Sumber File PDF</label>
+                  <div className="admin-field">
+                    <label className="admin-label">Metode Sumber File PDF</label>
                     <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
-                        <input 
-                          type="radio" 
+                      <label className="admin-radio-label">
+                        <input
+                          type="radio"
                           checked={manualFilePathType === 'upload'}
                           onChange={() => setManualFilePathType('upload')}
                         />
                         Unggah PDF
                       </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
-                        <input 
-                          type="radio" 
+                      <label className="admin-radio-label">
+                        <input
+                          type="radio"
                           checked={manualFilePathType === 'local'}
                           onChange={() => setManualFilePathType('local')}
                         />
@@ -734,15 +678,15 @@ export default function AdminDashboard() {
                   </div>
 
                   {manualFilePathType === 'upload' ? (
-                    <div style={formFieldStyle}>
-                      <label style={labelStyle}>Pilih File PDF</label>
-                      <div style={fileUploadBoxStyle}>
-                        <Upload size={20} style={{ color: '#c5a880', marginBottom: '8px' }} />
-                        <span style={{ fontSize: '0.8rem', color: '#a1a1aa', textAlign: 'center' }}>
+                    <div className="admin-field">
+                      <label className="admin-label">Pilih File PDF</label>
+                      <div className="admin-upload-box">
+                        <Upload size={20} style={{ color: 'var(--admin-accent)', marginBottom: '8px' }} />
+                        <span style={{ fontSize: '0.8rem', color: 'var(--admin-text-secondary)', textAlign: 'center' }}>
                           {manualFile ? manualFile.name : 'Klik untuk memilih berkas .pdf'}
                         </span>
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           accept="application/pdf"
                           onChange={(e) => {
                             if (e.target.files && e.target.files.length > 0) {
@@ -762,43 +706,36 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ) : (
-                    <div style={formFieldStyle}>
-                      <label style={labelStyle}>Path File Lokal (di folder /public)</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#18191c', borderRadius: '8px', border: '1px solid rgba(197, 168, 128, 0.15)', padding: '4px 12px' }}>
-                        <Link size={14} style={{ color: '#c5a880' }} />
-                        <input 
-                          type="text" 
-                          placeholder="/assets/docs/raymond-weil-manual-guide" 
+                    <div className="admin-field">
+                      <label className="admin-label">Path File Lokal (di folder /public)</label>
+                      <div className="admin-local-path-box">
+                        <Link size={14} style={{ color: 'var(--admin-accent)' }} />
+                        <input
+                          type="text"
+                          placeholder="/assets/docs/raymond-weil-manual-guide"
                           value={manualLocalPath}
                           onChange={(e) => setManualLocalPath(e.target.value)}
-                          style={{
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            color: '#fff',
-                            padding: '8px 4px',
-                            flex: 1,
-                            fontSize: '0.9rem',
-                            outline: 'none'
-                          }}
+                          className="admin-local-path-input"
                         />
                       </div>
                     </div>
                   )}
 
-                  <button type="submit" disabled={loading} style={btnStyle}>
+                  <button type="submit" disabled={loading} className="admin-btn-primary">
                     <Plus size={16} />
                     Simpan Buku Manual
                   </button>
                 </form>
 
                 {/* List Manuals */}
-                <div style={formBoxStyle}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h3 style={{ ...formTitleStyle, marginBottom: 0 }}>Daftar Buku Manual</h3>
+                <div className="admin-card">
+                  <div className="admin-card-header-row">
+                    <h3 className="admin-card-title" style={{ marginBottom: 0 }}>Daftar Buku Manual</h3>
                     <select
                       value={selectedBrandId}
                       onChange={(e) => setSelectedBrandId(e.target.value)}
-                      style={{ ...selectStyle, width: '200px', padding: '6px 12px' }}
+                      className="admin-select"
+                      style={{ width: '200px', padding: '6px 12px' }}
                     >
                       <option value="">Semua Brand</option>
                       {brands.map(brand => (
@@ -806,43 +743,37 @@ export default function AdminDashboard() {
                       ))}
                     </select>
                   </div>
-                  
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={tableStyle}>
+
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
                       <thead>
                         <tr>
-                          <th style={thStyle}>Judul Buku</th>
-                          <th style={thStyle}>Slug</th>
-                          <th style={thStyle}>Tipe File</th>
-                          <th style={thStyle}>Tema</th>
-                          <th style={thStyle}>Tautan Berkas</th>
-                          <th style={{ ...thStyle, textAlign: 'center', width: '110px' }}>Aksi</th>
+                          <th className="admin-th">Judul Buku</th>
+                          <th className="admin-th">Slug</th>
+                          <th className="admin-th">Tipe File</th>
+                          <th className="admin-th">Tema</th>
+                          <th className="admin-th">Tautan Berkas</th>
+                          <th className="admin-th" style={{ textAlign: 'center', width: '110px' }}>Aksi</th>
                         </tr>
                       </thead>
                       <tbody>
                         {manuals.map(manual => {
                           const isLocal = !manual.file_path.includes('/storage/v1/object/public/');
                           return (
-                            <tr key={manual.id} style={trStyle}>
-                              <td style={tdStyle}>{manual.title}</td>
-                              <td style={{ ...tdStyle, color: '#c5a880' }}>/{manual.slug}</td>
-                              <td style={tdStyle}>
-                                <span style={{
-                                  fontSize: '0.7rem',
-                                  backgroundColor: isLocal ? 'rgba(197, 168, 128, 0.12)' : 'rgba(59, 130, 246, 0.12)',
-                                  color: isLocal ? '#c5a880' : '#60a5fa',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  fontWeight: 600
-                                }}>
+                            <tr key={manual.id} className="admin-tr">
+                              <td className="admin-td">{manual.title}</td>
+                              <td className="admin-td admin-td-accent">/{manual.slug}</td>
+                              <td className="admin-td">
+                                <span className={`admin-badge ${isLocal ? 'admin-badge--gold' : 'admin-badge--blue'}`}>
                                   {isLocal ? 'Lokal' : 'Cloud Storage'}
                                 </span>
                               </td>
-                              <td style={tdStyle}>
+                              <td className="admin-td">
                                 <select
                                   value={manual.theme || ''}
                                   onChange={(e) => handleChangeManualTheme(manual.id, e.target.value as '' | ThemeId)}
-                                  style={{ ...selectStyle, padding: '5px 8px', fontSize: '0.78rem', width: '150px' }}
+                                  className="admin-select"
+                                  style={{ padding: '5px 8px', fontSize: '0.78rem', width: '150px' }}
                                 >
                                   <option value="">Default Global</option>
                                   {THEME_OPTIONS.map(option => (
@@ -850,28 +781,28 @@ export default function AdminDashboard() {
                                   ))}
                                 </select>
                               </td>
-                              <td style={tdStyle}>
+                              <td className="admin-td">
                                 <a
                                   href={`${window.location.origin}/${manual.slug}`}
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  style={{ color: '#c5a880', textDecoration: 'underline', fontSize: '0.8rem' }}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="admin-link"
                                 >
                                   Buka Halaman
                                 </a>
                               </td>
-                              <td style={{ ...tdStyle, textAlign: 'center' }}>
+                              <td className="admin-td" style={{ textAlign: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                                   <button
                                     onClick={() => handleShowQrCode(manual)}
-                                    style={qrBtnStyle}
+                                    className="admin-icon-btn admin-icon-btn--accent"
                                     title="Tampilkan QR Code"
                                   >
                                     <QrCode size={15} />
                                   </button>
                                   <button
                                     onClick={() => handleDeleteManual(manual.id, manual.file_path)}
-                                    style={deleteBtnStyle}
+                                    className="admin-icon-btn admin-icon-btn--danger"
                                     title="Hapus Buku"
                                   >
                                     <Trash2 size={15} />
@@ -883,7 +814,7 @@ export default function AdminDashboard() {
                         })}
                         {manuals.length === 0 && (
                           <tr>
-                            <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', color: '#a1a1aa', padding: '30px' }}>
+                            <td colSpan={6} className="admin-empty-row">
                               Belum ada buku manual terdaftar untuk brand ini.
                             </td>
                           </tr>
@@ -899,20 +830,19 @@ export default function AdminDashboard() {
           {/* TAB 3: TOC (TABLE OF CONTENTS) */}
           {activeTab === 'toc' && (
             <div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#fff', marginBottom: '24px' }}>
-                3. Kelola Daftar Isi (Lompat Halaman PDF)
-              </h2>
+              <h2 className="admin-section-title">3. Kelola Daftar Isi (Lompat Halaman PDF)</h2>
 
-              <div style={{ display: 'flex', gap: '20px', marginBottom: '24px', backgroundColor: '#121316', padding: '16px 20px', borderRadius: '8px', border: '1px solid rgba(197, 168, 128, 0.08)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.75rem', color: '#a1a1aa', fontWeight: 600 }}>Filter Brand</label>
+              <div className="admin-filter-bar">
+                <div className="admin-filter-field">
+                  <label className="admin-filter-label">Filter Brand</label>
                   <select
                     value={selectedBrandId}
                     onChange={(e) => {
                       setSelectedBrandId(e.target.value);
                       setSelectedManualId('');
                     }}
-                    style={{ ...selectStyle, width: '220px' }}
+                    className="admin-select"
+                    style={{ width: '220px' }}
                   >
                     <option value="">-- Pilih Brand --</option>
                     {brands.map(brand => (
@@ -921,13 +851,14 @@ export default function AdminDashboard() {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.75rem', color: '#a1a1aa', fontWeight: 600 }}>Pilih Buku Manual</label>
+                <div className="admin-filter-field">
+                  <label className="admin-filter-label">Pilih Buku Manual</label>
                   <select
                     value={selectedManualId}
                     onChange={(e) => setSelectedManualId(e.target.value)}
                     disabled={!selectedBrandId}
-                    style={{ ...selectStyle, width: '300px' }}
+                    className="admin-select"
+                    style={{ width: '300px' }}
                   >
                     <option value="">-- Pilih Buku Manual --</option>
                     {manuals.map(manual => (
@@ -938,89 +869,80 @@ export default function AdminDashboard() {
               </div>
 
               {selectedManualId ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px', alignItems: 'start' }}>
+                <div className="admin-grid-2">
                   {/* Form Add TOC Entry */}
-                  <form onSubmit={handleAddTocEntry} style={formBoxStyle}>
-                    <h3 style={formTitleStyle}>Tambah Bab Daftar Isi</h3>
+                  <form onSubmit={handleAddTocEntry} className="admin-card">
+                    <h3 className="admin-card-title">Tambah Bab Daftar Isi</h3>
 
-                    <div style={formFieldStyle}>
-                      <label style={labelStyle}>Nama Bab (Bahasa)</label>
-                      <input 
-                        type="text" 
-                        required 
-                        placeholder="Mekanik Otomatis GMT" 
+                    <div className="admin-field">
+                      <label className="admin-label">Nama Bab (Bahasa)</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Mekanik Otomatis GMT"
                         value={tocTitle}
                         onChange={(e) => setTocTitle(e.target.value)}
-                        style={inputStyle}
+                        className="admin-input"
                       />
                     </div>
 
-                    <div style={formFieldStyle}>
-                      <label style={labelStyle}>Kode / Referensi Kaliber</label>
-                      <input 
-                        type="text" 
-                        required 
-                        placeholder="Ref. 2761" 
+                    <div className="admin-field">
+                      <label className="admin-label">Kode / Referensi Kaliber</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ref. 2761"
                         value={tocCode}
                         onChange={(e) => setTocCode(e.target.value)}
-                        style={inputStyle}
+                        className="admin-input"
                       />
                     </div>
 
-                    <div style={formFieldStyle}>
-                      <label style={labelStyle}>Nomor Halaman Fisik (PDF)</label>
-                      <input 
-                        type="number" 
-                        required 
+                    <div className="admin-field">
+                      <label className="admin-label">Nomor Halaman Fisik (PDF)</label>
+                      <input
+                        type="number"
+                        required
                         min={1}
                         value={tocPageNumber}
                         onChange={(e) => setTocPageNumber(parseInt(e.target.value) || 1)}
-                        style={inputStyle}
+                        className="admin-input"
                       />
                     </div>
 
-                    <button type="submit" disabled={loading} style={btnStyle}>
+                    <button type="submit" disabled={loading} className="admin-btn-primary">
                       <Plus size={16} />
                       Simpan Item Bab
                     </button>
                   </form>
 
                   {/* List TOC Entries */}
-                  <div style={formBoxStyle}>
-                    <h3 style={formTitleStyle}>Daftar Bab & Halaman PDF</h3>
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={tableStyle}>
+                  <div className="admin-card">
+                    <h3 className="admin-card-title">Daftar Bab & Halaman PDF</h3>
+                    <div className="admin-table-wrap">
+                      <table className="admin-table">
                         <thead>
                           <tr>
-                            <th style={thStyle}>Halaman</th>
-                            <th style={thStyle}>Nama Bab</th>
-                            <th style={thStyle}>Referensi</th>
-                            <th style={{ ...thStyle, textAlign: 'center', width: '80px' }}>Aksi</th>
+                            <th className="admin-th">Halaman</th>
+                            <th className="admin-th">Nama Bab</th>
+                            <th className="admin-th">Referensi</th>
+                            <th className="admin-th" style={{ textAlign: 'center', width: '80px' }}>Aksi</th>
                           </tr>
                         </thead>
                         <tbody>
                           {tocEntries.map(entry => (
-                            <tr key={entry.id} style={trStyle}>
-                              <td style={{ ...tdStyle, fontWeight: 700, color: '#c5a880' }}>
+                            <tr key={entry.id} className="admin-tr">
+                              <td className="admin-td admin-td-accent" style={{ fontWeight: 700 }}>
                                 Hal. {entry.page_number}
                               </td>
-                              <td style={tdStyle}>{entry.title}</td>
-                              <td style={tdStyle}>
-                                <span style={{
-                                  fontSize: '0.7rem',
-                                  backgroundColor: 'rgba(197, 168, 128, 0.1)',
-                                  color: '#c5a880',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  fontWeight: 600
-                                }}>
-                                  {entry.code}
-                                </span>
+                              <td className="admin-td">{entry.title}</td>
+                              <td className="admin-td">
+                                <span className="admin-badge admin-badge--gold">{entry.code}</span>
                               </td>
-                              <td style={{ ...tdStyle, textAlign: 'center' }}>
-                                <button 
+                              <td className="admin-td" style={{ textAlign: 'center' }}>
+                                <button
                                   onClick={() => handleDeleteToc(entry.id)}
-                                  style={deleteBtnStyle}
+                                  className="admin-icon-btn admin-icon-btn--danger"
                                   title="Hapus Item"
                                 >
                                   <Trash2 size={15} />
@@ -1030,7 +952,7 @@ export default function AdminDashboard() {
                           ))}
                           {tocEntries.length === 0 && (
                             <tr>
-                              <td colSpan={4} style={{ ...tdStyle, textAlign: 'center', color: '#a1a1aa', padding: '30px' }}>
+                              <td colSpan={4} className="admin-empty-row">
                                 Belum ada bab terdaftar untuk buku ini. Mulai tambahkan melalui form di samping.
                               </td>
                             </tr>
@@ -1041,9 +963,9 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ) : (
-                <div style={{ ...formBoxStyle, padding: '40px', textAlign: 'center', color: '#a1a1aa' }}>
-                  <BookOpen size={36} style={{ color: '#c5a880', marginBottom: '16px', opacity: 0.7 }} />
-                  <h3 style={{ margin: '0 0 8px 0', color: '#fff', fontSize: '1.1rem' }}>Pilih Buku Manual Terlebih Dahulu</h3>
+                <div className="admin-card admin-empty-panel">
+                  <BookOpen size={36} style={{ color: 'var(--admin-accent)', marginBottom: '16px', opacity: 0.7 }} />
+                  <h3 style={{ margin: '0 0 8px 0', color: 'var(--admin-text-primary)', fontSize: '1.1rem' }}>Pilih Buku Manual Terlebih Dahulu</h3>
                   <p style={{ margin: 0, fontSize: '0.85rem' }}>Pilih Brand dan Buku Manual di atas untuk mulai melihat dan mengelola daftar isinya.</p>
                 </div>
               )}
@@ -1053,10 +975,8 @@ export default function AdminDashboard() {
           {/* TAB 4: THEME (COLOR TONE FOR PUBLIC VIEWER) */}
           {activeTab === 'theme' && (
             <div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#fff', marginBottom: '8px' }}>
-                4. Tema Viewer Publik
-              </h2>
-              <p style={{ fontSize: '0.85rem', color: '#a1a1aa', marginBottom: '24px', maxWidth: '640px', lineHeight: 1.6 }}>
+              <h2 className="admin-section-title" style={{ marginBottom: '8px' }}>4. Tema Viewer Publik</h2>
+              <p className="admin-section-desc">
                 Pilih tone warna yang akan dipakai semua pengunjung di halaman Viewer publik. Cocok untuk membedakan
                 identitas visual tiap brand (Cali/Raymond Weil, Bvlgari, Omega, dst) saat manual book brand tersebut dirilis.
               </p>
@@ -1069,7 +989,7 @@ export default function AdminDashboard() {
                 {THEME_OPTIONS.map(option => {
                   const isActive = viewerTheme === option.id;
                   return (
-                    <div key={option.id} style={themeCardStyle(isActive)}>
+                    <div key={option.id} className={`admin-theme-card ${isActive ? 'is-active' : ''}`}>
                       <div style={{
                         height: '90px',
                         borderRadius: '8px',
@@ -1111,9 +1031,9 @@ export default function AdminDashboard() {
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>{option.label}</span>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--admin-text-primary)' }}>{option.label}</span>
                         {isActive && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: '#4ade80', fontWeight: 600 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--admin-success)', fontWeight: 600 }}>
                             <Check size={13} />
                             Aktif
                           </span>
@@ -1124,7 +1044,7 @@ export default function AdminDashboard() {
                         type="button"
                         disabled={isActive}
                         onClick={() => handleChangeViewerTheme(option.id)}
-                        style={themeCardBtnStyle(isActive)}
+                        className={`admin-theme-card-btn ${isActive ? 'is-active' : ''}`}
                       >
                         {isActive ? 'Sedang Dipakai' : 'Jadikan Aktif'}
                       </button>
@@ -1139,14 +1059,14 @@ export default function AdminDashboard() {
 
       {/* QR Code Modal */}
       {qrManual && (
-        <div style={qrModalBackdropStyle} onClick={handleCloseQrModal}>
-          <div style={qrModalStyle} onClick={(e) => e.stopPropagation()}>
+        <div className="admin-modal-backdrop" onClick={handleCloseQrModal}>
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#fff' }}>QR Code Buku Manual</h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#a1a1aa' }}>{qrManual.title}</p>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--admin-text-primary)' }}>QR Code Buku Manual</h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--admin-text-secondary)' }}>{qrManual.title}</p>
               </div>
-              <button onClick={handleCloseQrModal} style={qrCloseBtnStyle} title="Tutup">
+              <button onClick={handleCloseQrModal} className="admin-icon-btn admin-icon-btn--muted" title="Tutup">
                 <X size={18} />
               </button>
             </div>
@@ -1164,7 +1084,7 @@ export default function AdminDashboard() {
                 />
               )}
 
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#c5a880', textAlign: 'center', wordBreak: 'break-all' }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--admin-accent)', textAlign: 'center', wordBreak: 'break-all' }}>
                 {window.location.origin}/{qrManual.slug}
               </p>
 
@@ -1172,7 +1092,8 @@ export default function AdminDashboard() {
                 <a
                   href={qrDataUrl}
                   download={`qr-${qrManual.slug}.png`}
-                  style={{ ...btnStyle, width: '100%', textDecoration: 'none' }}
+                  className="admin-btn-primary"
+                  style={{ textDecoration: 'none' }}
                 >
                   <Download size={16} />
                   Unduh QR Code (PNG)
@@ -1185,215 +1106,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-// Styling helpers
-const sideBtnStyle = (isActive: boolean) => ({
-  width: '100%',
-  backgroundColor: isActive ? 'rgba(197, 168, 128, 0.12)' : 'transparent',
-  border: 'none',
-  color: isActive ? '#fff' : '#94a3b8',
-  padding: '12px 16px',
-  borderRadius: '8px',
-  fontSize: '0.875rem',
-  fontWeight: isActive ? 600 : 500,
-  display: 'flex',
-  alignItems: 'center',
-  gap: '12px',
-  cursor: 'pointer',
-  textAlign: 'left' as const,
-  transition: 'all 0.2s',
-  fontFamily: 'Outfit, sans-serif'
-});
-
-const formBoxStyle = {
-  backgroundColor: '#121316',
-  border: '1px solid rgba(197, 168, 128, 0.08)',
-  borderRadius: '12px',
-  padding: '24px',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-};
-
-const formTitleStyle = {
-  fontSize: '1.05rem',
-  fontWeight: 600,
-  color: '#fff',
-  marginTop: 0,
-  marginBottom: '20px',
-  letterSpacing: '0.01em'
-};
-
-const formFieldStyle = {
-  display: 'flex',
-  flexDirection: 'column' as const,
-  gap: '6px',
-  marginBottom: '16px'
-};
-
-const labelStyle = {
-  fontSize: '0.8rem',
-  color: '#94a3b8',
-  fontWeight: 500
-};
-
-const inputStyle = {
-  backgroundColor: '#18191c',
-  border: '1px solid rgba(197, 168, 128, 0.15)',
-  color: '#fff',
-  padding: '10px 14px',
-  borderRadius: '8px',
-  fontSize: '0.875rem',
-  outline: 'none',
-  fontFamily: 'Outfit, sans-serif'
-};
-
-const selectStyle = {
-  backgroundColor: '#18191c',
-  border: '1px solid rgba(197, 168, 128, 0.15)',
-  color: '#fff',
-  padding: '10px 14px',
-  borderRadius: '8px',
-  fontSize: '0.875rem',
-  outline: 'none',
-  cursor: 'pointer',
-  fontFamily: 'Outfit, sans-serif'
-};
-
-const fileUploadBoxStyle = {
-  border: '2px dashed rgba(197, 168, 128, 0.25)',
-  borderRadius: '8px',
-  padding: '20px',
-  display: 'flex',
-  flexDirection: 'column' as const,
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: '#18191c',
-  position: 'relative' as const,
-  cursor: 'pointer'
-};
-
-const btnStyle = {
-  width: '100%',
-  backgroundColor: '#c5a880',
-  color: '#0b0c0e',
-  border: 'none',
-  padding: '12px',
-  borderRadius: '8px',
-  fontWeight: 600,
-  fontSize: '0.875rem',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '8px',
-  cursor: 'pointer',
-  transition: 'background-color 0.2s',
-  marginTop: '8px',
-  fontFamily: 'Outfit, sans-serif'
-};
-
-const tableStyle = {
-  width: '100%',
-  borderCollapse: 'collapse' as const,
-  fontSize: '0.875rem'
-};
-
-const thStyle = {
-  borderBottom: '1px solid rgba(197, 168, 128, 0.15)',
-  color: '#94a3b8',
-  fontWeight: 600,
-  textAlign: 'left' as const,
-  padding: '10px 12px'
-};
-
-const trStyle = {
-  borderBottom: '1px solid rgba(197, 168, 128, 0.05)',
-  transition: 'background-color 0.2s'
-};
-
-const tdStyle = {
-  padding: '12px',
-  color: '#e2e8f0',
-  verticalAlign: 'middle'
-};
-
-const themeCardStyle = (isActive: boolean) => ({
-  backgroundColor: '#121316',
-  border: `1px solid ${isActive ? '#c5a880' : 'rgba(197, 168, 128, 0.08)'}`,
-  borderRadius: '12px',
-  padding: '16px',
-  boxShadow: isActive ? '0 0 0 1px rgba(197, 168, 128, 0.3)' : '0 4px 20px rgba(0,0,0,0.15)',
-  transition: 'border-color 0.2s, box-shadow 0.2s'
-});
-
-const themeCardBtnStyle = (isActive: boolean) => ({
-  width: '100%',
-  backgroundColor: isActive ? 'transparent' : '#c5a880',
-  color: isActive ? '#4ade80' : '#0b0c0e',
-  border: isActive ? '1px solid rgba(74, 222, 128, 0.3)' : 'none',
-  padding: '9px',
-  borderRadius: '8px',
-  fontWeight: 600,
-  fontSize: '0.8rem',
-  cursor: isActive ? 'default' : 'pointer',
-  transition: 'background-color 0.2s',
-  fontFamily: 'Outfit, sans-serif'
-});
-
-const deleteBtnStyle = {
-  backgroundColor: 'transparent',
-  border: 'none',
-  color: '#f87171',
-  cursor: 'pointer',
-  padding: '4px',
-  borderRadius: '4px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  transition: 'background-color 0.2s'
-};
-
-const qrBtnStyle = {
-  backgroundColor: 'transparent',
-  border: 'none',
-  color: '#c5a880',
-  cursor: 'pointer',
-  padding: '4px',
-  borderRadius: '4px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  transition: 'background-color 0.2s'
-};
-
-const qrModalBackdropStyle = {
-  position: 'fixed' as const,
-  inset: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 2000,
-  padding: '20px'
-};
-
-const qrModalStyle = {
-  backgroundColor: '#121316',
-  border: '1px solid rgba(197, 168, 128, 0.15)',
-  borderRadius: '12px',
-  padding: '24px',
-  width: '100%',
-  maxWidth: '360px',
-  boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
-};
-
-const qrCloseBtnStyle = {
-  backgroundColor: 'transparent',
-  border: 'none',
-  color: '#94a3b8',
-  cursor: 'pointer',
-  padding: '4px',
-  borderRadius: '4px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0
-};
