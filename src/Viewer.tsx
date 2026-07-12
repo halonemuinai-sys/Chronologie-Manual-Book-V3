@@ -150,13 +150,13 @@ export default function AppViewer() {
   useEffect(() => {
     const loadSupabaseData = async () => {
       try {
-        const { data: dbBrands, error: brandsError } = await supabase.from('chronologie_brands').select('*');
+        const { data: dbBrands, error: brandsError } = await supabase.from('brands').select('*');
         if (brandsError) throw brandsError;
 
-        const { data: dbManuals, error: manualsError } = await supabase.from('chronologie_manuals').select('*');
+        const { data: dbManuals, error: manualsError } = await supabase.from('manuals').select('*');
         if (manualsError) throw manualsError;
 
-        const { data: dbToc, error: tocError } = await supabase.from('chronologie_toc_entries').select('*');
+        const { data: dbToc, error: tocError } = await supabase.from('toc_entries').select('*');
         if (tocError) throw tocError;
 
         if (dbBrands && dbManuals && dbToc && dbManuals.length > 0) {

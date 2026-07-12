@@ -1,12 +1,17 @@
--- SQL Schema untuk Portal Chronologie Manual Book V2 (Prefiks chronologie_ agar tidak merusak data lain)
--- Jalankan kode ini di SQL Editor dashboard Supabase Anda.
+-- SQL Schema untuk Portal Chronologie Manual Book V2 (Isolasi penuh dalam schema 'chronologie')
+-- Jalankan seluruh kode ini di SQL Editor dashboard Supabase Anda.
 
 -- ======================================================
--- 1. Pembuatan Tabel dengan Prefiks chronologie_
+-- 1. Pembuatan Schema Baru
+-- ======================================================
+CREATE SCHEMA IF NOT EXISTS chronologie;
+
+-- ======================================================
+-- 2. Pembuatan Tabel di Dalam Schema 'chronologie'
 -- ======================================================
 
 -- Tabel Brands
-CREATE TABLE IF NOT EXISTS public.chronologie_brands (
+CREATE TABLE IF NOT EXISTS chronologie.brands (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
@@ -14,9 +19,9 @@ CREATE TABLE IF NOT EXISTS public.chronologie_brands (
 );
 
 -- Tabel Manuals
-CREATE TABLE IF NOT EXISTS public.chronologie_manuals (
+CREATE TABLE IF NOT EXISTS chronologie.manuals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    brand_id UUID REFERENCES public.chronologie_brands(id) ON DELETE CASCADE,
+    brand_id UUID REFERENCES chronologie.brands(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
     file_path TEXT NOT NULL, -- Menyimpan URL berkas PDF
@@ -24,9 +29,9 @@ CREATE TABLE IF NOT EXISTS public.chronologie_manuals (
 );
 
 -- Tabel Table of Contents (Daftar Isi per Manual)
-CREATE TABLE IF NOT EXISTS public.chronologie_toc_entries (
+CREATE TABLE IF NOT EXISTS chronologie.toc_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    manual_id UUID REFERENCES public.chronologie_manuals(id) ON DELETE CASCADE,
+    manual_id UUID REFERENCES chronologie.manuals(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     code TEXT NOT NULL, -- Kode referensi seperti Ref. 2761
     page_number INTEGER NOT NULL,
@@ -34,73 +39,108 @@ CREATE TABLE IF NOT EXISTS public.chronologie_toc_entries (
 );
 
 -- ======================================================
--- 2. Aktifkan Row Level Security (RLS)
+-- 3. Aktifkan Row Level Security (RLS)
 -- ======================================================
-ALTER TABLE public.chronologie_brands ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chronologie_manuals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chronologie_toc_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chronologie.brands ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chronologie.manuals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chronologie.toc_entries ENABLE ROW LEVEL SECURITY;
 
 -- ======================================================
--- 3. Pembuatan Policy (Kebijakan Akses)
+-- 4. Pembuatan Policy (Kebijakan Akses Database)
 -- ======================================================
 
--- Policy untuk tabel chronologie_brands
-CREATE POLICY "Public read access for chronologie_brands" 
-ON public.chronologie_brands FOR SELECT 
+-- Policy untuk tabel brands
+CREATE POLICY "Public read access for brands" 
+ON chronologie.brands FOR SELECT 
 TO anon, authenticated 
 USING (true);
 
-CREATE POLICY "Admin full access for chronologie_brands" 
-ON public.chronologie_brands FOR ALL 
+CREATE POLICY "Admin full access for brands" 
+ON chronologie.brands FOR ALL 
 TO authenticated 
 USING (true) 
 WITH CHECK (true);
 
--- Policy untuk tabel chronologie_manuals
-CREATE POLICY "Public read access for chronologie_manuals" 
-ON public.chronologie_manuals FOR SELECT 
+-- Policy untuk tabel manuals
+CREATE POLICY "Public read access for manuals" 
+ON chronologie.manuals FOR SELECT 
 TO anon, authenticated 
 USING (true);
 
-CREATE POLICY "Admin full access for chronologie_manuals" 
-ON public.chronologie_manuals FOR ALL 
+CREATE POLICY "Admin full access for manuals" 
+ON chronologie.manuals FOR ALL 
 TO authenticated 
 USING (true) 
 WITH CHECK (true);
 
--- Policy untuk tabel chronologie_toc_entries
-CREATE POLICY "Public read access for chronologie_toc_entries" 
-ON public.chronologie_toc_entries FOR SELECT 
+-- Policy untuk tabel toc_entries
+CREATE POLICY "Public read access for toc_entries" 
+ON chronologie.toc_entries FOR SELECT 
 TO anon, authenticated 
 USING (true);
 
-CREATE POLICY "Admin full access for chronologie_toc_entries" 
-ON public.chronologie_toc_entries FOR ALL 
+CREATE POLICY "Admin full access for toc_entries" 
+ON chronologie.toc_entries FOR ALL 
 TO authenticated 
 USING (true) 
 WITH CHECK (true);
 
 -- ======================================================
--- 4. Contoh Pengisian Data Awal (Optional Seed)
+-- 5. Pembuatan Storage Bucket & Policy (Public Bucket)
 -- ======================================================
--- Jalankan ini jika ingin mengisi data awal Cali & Raymond Weil secara otomatis ke tabel baru Anda.
+
+-- Buat bucket 'chronologie-manuals' secara otomatis
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('chronologie-manuals', 'chronologie-manuals', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Hapus policy lama jika ada untuk menghindari konflik penamaan
+DROP POLICY IF EXISTS "Public Read Access" ON storage.objects;
+DROP POLICY IF EXISTS "Admin Upload Access" ON storage.objects;
+DROP POLICY IF EXISTS "Admin Update Access" ON storage.objects;
+DROP POLICY IF EXISTS "Admin Delete Access" ON storage.objects;
+
+-- Kebijakan Baca Publik Storage
+CREATE POLICY "Public Read Access" ON storage.objects
+FOR SELECT TO public
+USING (bucket_id = 'chronologie-manuals');
+
+-- Kebijakan Unggah Admin Storage (Authenticated)
+CREATE POLICY "Admin Upload Access" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'chronologie-manuals');
+
+-- Kebijakan Update Admin Storage (Authenticated)
+CREATE POLICY "Admin Update Access" ON storage.objects
+FOR UPDATE TO authenticated
+WITH CHECK (bucket_id = 'chronologie-manuals');
+
+-- Kebijakan Hapus Admin Storage (Authenticated)
+CREATE POLICY "Admin Delete Access" ON storage.objects
+FOR DELETE TO authenticated
+USING (bucket_id = 'chronologie-manuals');
+
+-- ======================================================
+-- 6. Pengisian Data Awal (Optional Seed)
+-- ======================================================
+-- Hilangkan tanda komentar (/* ... */) jika ingin memasukkan data awal Raymond Weil langsung dari SQL Editor.
 
 /*
-INSERT INTO public.chronologie_brands (id, name, slug) 
+INSERT INTO chronologie.brands (id, name, slug) 
 VALUES ('c34752c0-82cc-4993-85bb-41cfb262d5f8', 'Cali / Raymond Weil', 'cali-raymond-weil')
 ON CONFLICT (slug) DO NOTHING;
 
-INSERT INTO public.chronologie_manuals (id, brand_id, title, slug, file_path)
+INSERT INTO chronologie.manuals (id, brand_id, title, slug, file_path)
 VALUES (
     'd83769c0-93dd-5004-96cc-52dfc273e6f9', 
     'c34752c0-82cc-4993-85bb-41cfb262d5f8', 
     'Raymond Weil Manual Guide', 
     'raymond-weil-manual-guide', 
-    '/assets/docs/raymond-weil-manual-guide'
+    'https://vekgzcxorvdidjutuvrj.supabase.co/storage/v1/object/public/chronologie-manuals/raymond-weil-manual-guide'
 )
 ON CONFLICT (slug) DO NOTHING;
 
-INSERT INTO public.chronologie_toc_entries (manual_id, title, code, page_number) VALUES
+INSERT INTO chronologie.toc_entries (manual_id, title, code, page_number) VALUES
 ('d83769c0-93dd-5004-96cc-52dfc273e6f9', 'Mekanik Otomatis GMT', 'Ref. 2761', 3),
 ('d83769c0-93dd-5004-96cc-52dfc273e6f9', 'Mekanik Otomatis GMT Worldtimer', 'Ref. 2765', 10),
 ('d83769c0-93dd-5004-96cc-52dfc273e6f9', 'Mekanik Otomatis Kalender Lengkap', 'Ref. 2765 / 2766-2', 17),
@@ -118,28 +158,4 @@ INSERT INTO public.chronologie_toc_entries (manual_id, title, code, page_number)
 ('d83769c0-93dd-5004-96cc-52dfc273e6f9', 'Mekanikal Otomatis Small Second', 'Small Second', 115),
 ('d83769c0-93dd-5004-96cc-52dfc273e6f9', 'Quartz Standard', 'Quartz', 124),
 ('d83769c0-93dd-5004-96cc-52dfc273e6f9', 'Quartz Shine', 'Quartz Shine', 136);
-
--- ======================================================
--- 5. Kebijakan Akses Storage (chronologie-manuals)
--- ======================================================
-
--- Kebijakan Baca Publik
-CREATE POLICY "Public Read Access" ON storage.objects
-FOR SELECT TO public
-USING (bucket_id = 'chronologie-manuals');
-
--- Kebijakan Unggah Admin (Authenticated)
-CREATE POLICY "Admin Upload Access" ON storage.objects
-FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'chronologie-manuals');
-
--- Kebijakan Update Admin (Authenticated)
-CREATE POLICY "Admin Update Access" ON storage.objects
-FOR UPDATE TO authenticated
-WITH CHECK (bucket_id = 'chronologie-manuals');
-
--- Kebijakan Hapus Admin (Authenticated)
-CREATE POLICY "Admin Delete Access" ON storage.objects
-FOR DELETE TO authenticated
-USING (bucket_id = 'chronologie-manuals');
-
+*/

@@ -40,7 +40,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'brands' | 'manuals' | 'toc'>('brands');
   const [sessionLoading, setSessionLoading] = useState(true);
 
-  // Database Data
+  // Database Data (Defaulting to 'chronologie' schema configured in supabaseClient.ts)
   const [brands, setBrands] = useState<Brand[]>([]);
   const [manuals, setManuals] = useState<Manual[]>([]);
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
@@ -84,12 +84,12 @@ export default function AdminDashboard() {
 
   // Fetch functions
   const fetchBrands = async () => {
-    const { data, error } = await supabase.from('chronologie_brands').select('*').order('name');
+    const { data, error } = await supabase.from('brands').select('*').order('name');
     if (!error && data) setBrands(data);
   };
 
   const fetchManuals = async (brandId?: string) => {
-    let query = supabase.from('chronologie_manuals').select('*').order('title');
+    let query = supabase.from('manuals').select('*').order('title');
     if (brandId) {
       query = query.eq('brand_id', brandId);
     }
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
   const fetchTocEntries = async (manualId: string) => {
     if (!manualId) return;
     const { data, error } = await supabase
-      .from('chronologie_toc_entries')
+      .from('toc_entries')
       .select('*')
       .eq('manual_id', manualId)
       .order('page_number');
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
     if (!brandName || !brandSlug) return;
     setLoading(true);
 
-    const { error } = await supabase.from('chronologie_brands').insert([
+    const { error } = await supabase.from('brands').insert([
       { name: brandName, slug: brandSlug.toLowerCase().trim() }
     ]);
 
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
   const handleDeleteBrand = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus brand ini? Semua buku manual dan daftar isi di dalamnya juga akan terhapus.')) return;
     
-    const { error } = await supabase.from('chronologie_brands').delete().eq('id', id);
+    const { error } = await supabase.from('brands').delete().eq('id', id);
     if (error) {
       showMsg(`Gagal menghapus: ${error.message}`, 'error');
     } else {
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
         finalFilePath = manualLocalPath;
       }
 
-      const { error: dbError } = await supabase.from('chronologie_manuals').insert([
+      const { error: dbError } = await supabase.from('manuals').insert([
         { 
           brand_id: manualBrandId, 
           title: manualTitle, 
@@ -255,7 +255,7 @@ export default function AdminDashboard() {
         }
       }
 
-      const { error } = await supabase.from('chronologie_manuals').delete().eq('id', id);
+      const { error } = await supabase.from('manuals').delete().eq('id', id);
       if (error) throw error;
 
       showMsg('Buku manual berhasil dihapus.', 'success');
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
     }
     setLoading(true);
 
-    const { error } = await supabase.from('chronologie_toc_entries').insert([
+    const { error } = await supabase.from('toc_entries').insert([
       {
         manual_id: selectedManualId,
         title: tocTitle,
@@ -299,7 +299,7 @@ export default function AdminDashboard() {
 
   // Delete TOC Entry
   const handleDeleteToc = async (id: string) => {
-    const { error } = await supabase.from('chronologie_toc_entries').delete().eq('id', id);
+    const { error } = await supabase.from('toc_entries').delete().eq('id', id);
     if (error) {
       showMsg(`Gagal menghapus item: ${error.message}`, 'error');
     } else {

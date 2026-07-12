@@ -16,7 +16,7 @@ export default function Downloader() {
       try {
         // 1. Try querying direct manual book by slug in Supabase
         const { data: manualData, error: manualError } = await supabase
-          .from('chronologie_manuals')
+          .from('manuals')
           .select('*')
           .eq('slug', slug)
           .single();
@@ -29,7 +29,7 @@ export default function Downloader() {
 
         // 2. If it's a TOC entry slug, query all manuals to find if slug starts with manual slug
         const { data: allManuals, error: allManualsError } = await supabase
-          .from('chronologie_manuals')
+          .from('manuals')
           .select('*');
 
         if (!allManualsError && allManuals) {
