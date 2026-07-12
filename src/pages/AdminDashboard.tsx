@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import QRCode from 'qrcode';
 import { supabase } from '../config/supabaseClient';
 import { THEME_OPTIONS, DEFAULT_THEME, isThemeId, type ThemeId } from '../config/themes';
 import {
@@ -13,7 +14,10 @@ import {
   Link,
   ChevronRight,
   Palette,
-  Check
+  Check,
+  QrCode,
+  X,
+  Download
 } from 'lucide-react';
 
 interface Brand {
@@ -59,6 +63,11 @@ export default function AdminDashboard() {
   // Site-wide default color tone for the public Viewer
   const [viewerTheme, setViewerTheme] = useState<ThemeId>(DEFAULT_THEME);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+
+  // QR Code modal for a manual's public Viewer link
+  const [qrManual, setQrManual] = useState<Manual | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
 
   // Brand Form State
   const [brandName, setBrandName] = useState('');
@@ -178,6 +187,32 @@ export default function AdminDashboard() {
     } else {
       showMsg('Tone warna default Viewer publik berhasil diperbarui.', 'success');
     }
+  };
+
+  // Show QR Code for a manual's public Viewer link
+  const handleShowQrCode = async (manual: Manual) => {
+    setQrManual(manual);
+    setQrDataUrl(null);
+    setQrLoading(true);
+    try {
+      const url = `${window.location.origin}/${manual.slug}`;
+      const dataUrl = await QRCode.toDataURL(url, {
+        width: 320,
+        margin: 2,
+        color: { dark: '#0b0c0e', light: '#ffffff' }
+      });
+      setQrDataUrl(dataUrl);
+    } catch (err: any) {
+      showMsg(err.message || 'Gagal membuat QR Code.', 'error');
+      setQrManual(null);
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const handleCloseQrModal = () => {
+    setQrManual(null);
+    setQrDataUrl(null);
   };
 
   // Add Brand
@@ -795,7 +830,7 @@ export default function AdminDashboard() {
                           <th style={thStyle}>Slug</th>
                           <th style={thStyle}>Tipe File</th>
                           <th style={thStyle}>Tautan Berkas</th>
-                          <th style={{ ...thStyle, textAlign: 'center', width: '80px' }}>Aksi</th>
+                          <th style={{ ...thStyle, textAlign: 'center', width: '110px' }}>Aksi</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -828,13 +863,22 @@ export default function AdminDashboard() {
                                 </a>
                               </td>
                               <td style={{ ...tdStyle, textAlign: 'center' }}>
-                                <button 
-                                  onClick={() => handleDeleteManual(manual.id, manual.file_path)}
-                                  style={deleteBtnStyle}
-                                  title="Hapus Buku"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                  <button
+                                    onClick={() => handleShowQrCode(manual)}
+                                    style={qrBtnStyle}
+                                    title="Tampilkan QR Code"
+                                  >
+                                    <QrCode size={15} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteManual(manual.id, manual.file_path)}
+                                    style={deleteBtnStyle}
+                                    title="Hapus Buku"
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1009,6 +1053,52 @@ export default function AdminDashboard() {
           )}
         </main>
       </div>
+
+      {/* QR Code Modal */}
+      {qrManual && (
+        <div style={qrModalBackdropStyle} onClick={handleCloseQrModal}>
+          <div style={qrModalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#fff' }}>QR Code Buku Manual</h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#a1a1aa' }}>{qrManual.title}</p>
+              </div>
+              <button onClick={handleCloseQrModal} style={qrCloseBtnStyle} title="Tutup">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+              {qrLoading || !qrDataUrl ? (
+                <div style={{ width: '256px', height: '256px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div className="spinner" />
+                </div>
+              ) : (
+                <img
+                  src={qrDataUrl}
+                  alt={`QR Code untuk ${qrManual.title}`}
+                  style={{ width: '256px', height: '256px', borderRadius: '8px', backgroundColor: '#fff', padding: '10px' }}
+                />
+              )}
+
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#c5a880', textAlign: 'center', wordBreak: 'break-all' }}>
+                {window.location.origin}/{qrManual.slug}
+              </p>
+
+              {qrDataUrl && (
+                <a
+                  href={qrDataUrl}
+                  download={`qr-${qrManual.slug}.png`}
+                  style={{ ...btnStyle, width: '100%', textDecoration: 'none' }}
+                >
+                  <Download size={16} />
+                  Unduh QR Code (PNG)
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1200,4 +1290,51 @@ const deleteBtnStyle = {
   alignItems: 'center',
   justifyContent: 'center',
   transition: 'background-color 0.2s'
+};
+
+const qrBtnStyle = {
+  backgroundColor: 'transparent',
+  border: 'none',
+  color: '#c5a880',
+  cursor: 'pointer',
+  padding: '4px',
+  borderRadius: '4px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'background-color 0.2s'
+};
+
+const qrModalBackdropStyle = {
+  position: 'fixed' as const,
+  inset: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 2000,
+  padding: '20px'
+};
+
+const qrModalStyle = {
+  backgroundColor: '#121316',
+  border: '1px solid rgba(197, 168, 128, 0.15)',
+  borderRadius: '12px',
+  padding: '24px',
+  width: '100%',
+  maxWidth: '360px',
+  boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+};
+
+const qrCloseBtnStyle = {
+  backgroundColor: 'transparent',
+  border: 'none',
+  color: '#94a3b8',
+  cursor: 'pointer',
+  padding: '4px',
+  borderRadius: '4px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0
 };
