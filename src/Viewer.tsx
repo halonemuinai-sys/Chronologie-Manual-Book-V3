@@ -1,18 +1,16 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core';
 import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation';
 import { supabase } from './config/supabaseClient';
-import { THEME_OPTIONS, DEFAULT_THEME, isThemeId, type ThemeId } from './config/themes';
+import { DEFAULT_THEME, isThemeId, type ThemeId } from './config/themes';
 import {
   X,
   Search,
   Download,
   Info,
   BookOpen,
-  ChevronDown,
-  Palette,
-  Check
+  ChevronDown
 } from 'lucide-react';
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -124,31 +122,13 @@ const tocMapping: Record<string, { page: number; title: string; code: string }> 
   }
 };
 
-const THEME_STORAGE_KEY = 'viewerColorTheme';
-
 export default function AppViewer() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
-  // Color theme (tone) state — visitor's own choice (if any) takes priority,
-  // otherwise falls back to the site-wide default set by the admin.
-  const savedThemePreference = typeof window !== 'undefined' ? window.localStorage.getItem(THEME_STORAGE_KEY) : null;
-  const hasExplicitPreference = useRef<boolean>(isThemeId(savedThemePreference));
+  // Color theme (tone) — controlled by the admin from the Dashboard, read-only here.
+  const [theme, setTheme] = useState<ThemeId>(DEFAULT_THEME);
 
-  const [theme, setTheme] = useState<ThemeId>(() => {
-    return isThemeId(savedThemePreference) ? savedThemePreference : DEFAULT_THEME;
-  });
-  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
-
-  const handleSelectTheme = (themeId: ThemeId) => {
-    hasExplicitPreference.current = true;
-    window.localStorage.setItem(THEME_STORAGE_KEY, themeId);
-    setTheme(themeId);
-    setIsThemeMenuOpen(false);
-  };
-
-  // Load the site-wide default tone set by the admin; only applies if the
-  // visitor hasn't picked their own tone in this browser yet.
   useEffect(() => {
     const loadDefaultTheme = async () => {
       try {
@@ -158,7 +138,7 @@ export default function AppViewer() {
           .eq('id', 1)
           .single();
         if (error) throw error;
-        if (data && !hasExplicitPreference.current && isThemeId(data.default_viewer_theme)) {
+        if (data && isThemeId(data.default_viewer_theme)) {
           setTheme(data.default_viewer_theme);
         }
       } catch (err) {
@@ -420,37 +400,6 @@ export default function AppViewer() {
           </div>
 
           <div className="navbar-right">
-            <button
-              className={`navbar-theme-btn ${isThemeMenuOpen ? 'is-open' : ''}`}
-              onClick={() => setIsThemeMenuOpen(prev => !prev)}
-              title="Ganti tone warna"
-            >
-              <Palette size={16} />
-            </button>
-
-            {isThemeMenuOpen && (
-              <>
-                <div className="theme-popover-backdrop" onClick={() => setIsThemeMenuOpen(false)} />
-                <div className="theme-popover">
-                  {THEME_OPTIONS.map(option => (
-                    <button
-                      key={option.id}
-                      className={`theme-option-btn ${theme === option.id ? 'is-active' : ''}`}
-                      onClick={() => handleSelectTheme(option.id)}
-                    >
-                      <span className="theme-swatch-dot" style={{ backgroundColor: option.swatch }} />
-                      {option.label}
-                      {theme === option.id && (
-                        <span className="theme-option-check">
-                          <Check size={14} />
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
             <a
               href={`/download/${activeManual.slug}`}
               target="_blank"
