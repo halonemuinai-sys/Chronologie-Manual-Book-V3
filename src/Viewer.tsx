@@ -466,24 +466,6 @@ export default function AppViewer() {
           {/* Floating Zoom Controls */}
           {pdfData && !pdfLoading && !fetchError && (
             <div className="floating-zoom-toolbar">
-              <ZoomOut>
-                {(props) => (
-                  <button 
-                    onClick={props.onClick} 
-                    className="zoom-btn"
-                    title="Zoom Out"
-                  >
-                    <ZoomOutIcon size={16} />
-                  </button>
-                )}
-              </ZoomOut>
-              <Zoom>
-                {(props) => (
-                  <span className="zoom-text">
-                    {`${Math.round(props.scale * 100)}%`}
-                  </span>
-                )}
-              </Zoom>
               <ZoomIn>
                 {(props) => (
                   <button 
@@ -495,6 +477,24 @@ export default function AppViewer() {
                   </button>
                 )}
               </ZoomIn>
+              <Zoom>
+                {(props) => (
+                  <span className="zoom-text">
+                    {`${Math.round(props.scale * 100)}%`}
+                  </span>
+                )}
+              </Zoom>
+              <ZoomOut>
+                {(props) => (
+                  <button 
+                    onClick={props.onClick} 
+                    className="zoom-btn"
+                    title="Zoom Out"
+                  >
+                    <ZoomOutIcon size={16} />
+                  </button>
+                )}
+              </ZoomOut>
               <div className="zoom-divider" />
               <button 
                 onClick={() => zoomPluginInstance.zoomTo(SpecialZoomLevel.PageWidth)} 
