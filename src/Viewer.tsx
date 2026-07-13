@@ -473,7 +473,7 @@ export default function AppViewer() {
                     className="zoom-btn"
                     title="Zoom In"
                   >
-                    <ZoomInIcon size={16} />
+                    <ZoomInIcon size={13} />
                   </button>
                 )}
               </ZoomIn>
@@ -491,7 +491,7 @@ export default function AppViewer() {
                     className="zoom-btn"
                     title="Zoom Out"
                   >
-                    <ZoomOutIcon size={16} />
+                    <ZoomOutIcon size={13} />
                   </button>
                 )}
               </ZoomOut>
@@ -501,7 +501,7 @@ export default function AppViewer() {
                 className="zoom-btn reset"
                 title="Fit to Width"
               >
-                <Maximize size={15} />
+                <Maximize size={12} />
               </button>
             </div>
           )}
