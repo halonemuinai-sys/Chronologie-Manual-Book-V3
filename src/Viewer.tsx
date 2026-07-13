@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core';
 import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation';
+import { zoomPlugin } from '@react-pdf-viewer/zoom';
 import { supabase } from './config/supabaseClient';
 import { DEFAULT_THEME, isThemeId, type ThemeId } from './config/themes';
 import {
@@ -10,11 +11,15 @@ import {
   Download,
   Info,
   BookOpen,
-  ChevronDown
+  ChevronDown,
+  ZoomIn as ZoomInIcon,
+  ZoomOut as ZoomOutIcon,
+  Maximize
 } from 'lucide-react';
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/page-navigation/lib/styles/index.css';
+import '@react-pdf-viewer/zoom/lib/styles/index.css';
 
 const workerUrl = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
@@ -282,6 +287,13 @@ export default function AppViewer() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // Initialize plugins
+  const pageNavigationPluginInstance = useMemo(() => pageNavigationPlugin(), []);
+  const { jumpToPage } = pageNavigationPluginInstance;
+
+  const zoomPluginInstance = useMemo(() => zoomPlugin(), []);
+  const { ZoomIn, ZoomOut, Zoom } = zoomPluginInstance;
+
   // PDF Data state
   const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -316,9 +328,7 @@ export default function AppViewer() {
       });
   }, [pdfUrl]);
 
-  // Initialize page-navigation plugin
-  const pageNavigationPluginInstance = pageNavigationPlugin();
-  const { jumpToPage } = pageNavigationPluginInstance;
+
 
   // Trigger jumpToPage when activeSlug or pdfData changes
   useEffect(() => {
@@ -331,7 +341,7 @@ export default function AppViewer() {
         return () => clearTimeout(timer);
       }
     }
-  }, [activeSlug, pdfData, activeTocMapping]);
+  }, [activeSlug, pdfData, activeTocMapping, jumpToPage]);
 
   // Filtered manuals list (excluding full book links in search filters)
   const filteredManuals = useMemo(() => {
@@ -443,13 +453,56 @@ export default function AppViewer() {
                   fileUrl={pdfData}
                   theme="dark"
                   defaultScale={SpecialZoomLevel.PageWidth}
-                  plugins={[pageNavigationPluginInstance]}
+                  plugins={[pageNavigationPluginInstance, zoomPluginInstance]}
                 />
               </div>
             </Worker>
           ) : (
             <div className="canvas-loading">
               <p>Tidak ada dokumen yang dimuat.</p>
+            </div>
+          )}
+
+          {/* Floating Zoom Controls */}
+          {pdfData && !pdfLoading && !fetchError && (
+            <div className="floating-zoom-toolbar">
+              <ZoomOut>
+                {(props) => (
+                  <button 
+                    onClick={props.onClick} 
+                    className="zoom-btn"
+                    title="Zoom Out"
+                  >
+                    <ZoomOutIcon size={16} />
+                  </button>
+                )}
+              </ZoomOut>
+              <Zoom>
+                {(props) => (
+                  <span className="zoom-text">
+                    {`${Math.round(props.scale * 100)}%`}
+                  </span>
+                )}
+              </Zoom>
+              <ZoomIn>
+                {(props) => (
+                  <button 
+                    onClick={props.onClick} 
+                    className="zoom-btn"
+                    title="Zoom In"
+                  >
+                    <ZoomInIcon size={16} />
+                  </button>
+                )}
+              </ZoomIn>
+              <div className="zoom-divider" />
+              <button 
+                onClick={() => zoomPluginInstance.zoomTo(SpecialZoomLevel.PageWidth)} 
+                className="zoom-btn reset"
+                title="Fit to Width"
+              >
+                <Maximize size={15} />
+              </button>
             </div>
           )}
         </div>
