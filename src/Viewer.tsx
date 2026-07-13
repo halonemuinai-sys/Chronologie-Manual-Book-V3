@@ -288,10 +288,10 @@ export default function AppViewer() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Initialize plugins
-  const pageNavigationPluginInstance = useMemo(() => pageNavigationPlugin(), []);
+  const pageNavigationPluginInstance = pageNavigationPlugin();
   const { jumpToPage } = pageNavigationPluginInstance;
 
-  const zoomPluginInstance = useMemo(() => zoomPlugin(), []);
+  const zoomPluginInstance = zoomPlugin();
   const { ZoomIn, ZoomOut, Zoom } = zoomPluginInstance;
 
   // PDF Data state
