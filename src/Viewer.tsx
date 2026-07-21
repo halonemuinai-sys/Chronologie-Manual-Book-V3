@@ -286,23 +286,6 @@ export default function AppViewer() {
   // States
   const [searchQuery, setSearchQuery] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedBrandFilter, setSelectedBrandFilter] = useState<string>('');
-
-  // Sync selectedBrandFilter when activeManual's brand changes
-  useEffect(() => {
-    if (activeManual?.brand) {
-      setSelectedBrandFilter(activeManual.brand);
-    }
-  }, [activeManual?.brand]);
-
-  // Extract list of all available brands
-  const allBrandsList = useMemo(() => {
-    const brandsSet = new Set<string>();
-    activeManualsList.forEach(item => {
-      if (item.brand) brandsSet.add(item.brand);
-    });
-    return Array.from(brandsSet);
-  }, [activeManualsList]);
 
   // Initialize plugins
   const pageNavigationPluginInstance = pageNavigationPlugin();
@@ -360,20 +343,20 @@ export default function AppViewer() {
     }
   }, [activeSlug, pdfData, activeTocMapping, jumpToPage]);
 
-  // Filtered Full Books links
+  // Filtered Full Books links for current brand
   const filteredFullBooks = useMemo(() => {
-    const fullBooks = activeManualsList.filter(item => item.code === 'Full Book');
-    if (!selectedBrandFilter) return fullBooks;
-    return fullBooks.filter(item => item.brand === selectedBrandFilter);
-  }, [activeManualsList, selectedBrandFilter]);
+    if (!activeManual?.brand) return [];
+    return activeManualsList.filter(
+      item => item.code === 'Full Book' && item.brand === activeManual.brand
+    );
+  }, [activeManualsList, activeManual?.brand]);
 
-  // Filtered manuals list (excluding full book links in search filters)
+  // Filtered manuals list for current brand (excluding full book links)
   const filteredManuals = useMemo(() => {
-    let list = activeManualsList.filter(item => item.code !== 'Full Book');
-
-    if (selectedBrandFilter) {
-      list = list.filter(item => item.brand === selectedBrandFilter);
-    }
+    if (!activeManual?.brand) return [];
+    let list = activeManualsList.filter(
+      item => item.code !== 'Full Book' && item.brand === activeManual.brand
+    );
 
     const query = searchQuery.toLowerCase().trim();
     if (!query) return list;
@@ -381,10 +364,9 @@ export default function AppViewer() {
     return list.filter(
       item =>
         item.cleanedTitle.toLowerCase().includes(query) ||
-        item.code.toLowerCase().includes(query) ||
-        item.brand.toLowerCase().includes(query)
+        item.code.toLowerCase().includes(query)
     );
-  }, [activeManualsList, selectedBrandFilter, searchQuery]);
+  }, [activeManualsList, activeManual?.brand, searchQuery]);
 
   // Handle click on manual item
   const handleSelectManual = (targetSlug: string) => {
@@ -551,7 +533,7 @@ export default function AppViewer() {
 
           {/* Drawer Header */}
           <div className="drawer-header">
-            <span className="drawer-title">Katalog Manual Book</span>
+            <span className="drawer-title">Katalog {activeManual?.brand || 'Manual Book'}</span>
             <button className="drawer-close-btn" onClick={() => setIsDrawerOpen(false)}>
               <X size={18} />
             </button>
@@ -575,27 +557,6 @@ export default function AppViewer() {
               )}
             </div>
           </div>
-
-          {/* Brand Filter Chips */}
-          {allBrandsList.length > 1 && (
-            <div className="brand-filter-chips">
-              <button
-                className={`brand-chip ${!selectedBrandFilter ? 'is-active' : ''}`}
-                onClick={() => setSelectedBrandFilter('')}
-              >
-                Semua Brand
-              </button>
-              {allBrandsList.map(brandName => (
-                <button
-                  key={brandName}
-                  className={`brand-chip ${selectedBrandFilter === brandName ? 'is-active' : ''}`}
-                  onClick={() => setSelectedBrandFilter(brandName)}
-                >
-                  {brandName}
-                </button>
-              ))}
-            </div>
-          )}
 
           {/* Catalog Content Scroll Area */}
           <div className="sidebar-content-scroll" style={{ padding: '0.75rem 1rem' }}>
@@ -622,7 +583,7 @@ export default function AppViewer() {
 
               {/* Chapters list by Brand */}
               <div className="brand-header-simple">
-                Daftar Isi Seri Jam <span>({filteredManuals.length})</span>
+                Daftar Isi {activeManual?.brand || 'Seri Jam'} <span>({filteredManuals.length})</span>
               </div>
               <div className="catalog-items-flat">
                 {filteredManuals.map(item => {
