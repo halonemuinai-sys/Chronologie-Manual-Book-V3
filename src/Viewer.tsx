@@ -580,20 +580,14 @@ export default function AppViewer() {
                       key={item.slug}
                       className={`catalog-item-btn ${isActive ? 'is-active' : ''}`}
                       onClick={() => handleSelectManual(item.slug)}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                      <div className="catalog-item-left">
                         <div className="item-dot" />
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                        <div className="catalog-item-text-group">
                           <span className="catalog-item-brand-label">
                             {item.brand}
                           </span>
-                          <span className="item-title" style={{ 
-                            whiteSpace: 'nowrap', 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis',
-                            marginTop: '1px'
-                          }}>
+                          <span className="item-title">
                             {item.cleanedTitle}
                           </span>
                         </div>
