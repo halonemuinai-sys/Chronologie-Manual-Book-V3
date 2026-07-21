@@ -436,7 +436,13 @@ export default function AdminDashboard() {
 
     setLoading(true);
     try {
-      const loadingTask = pdfjsLib.getDocument(currentManual.file_path);
+      const cleanUrl = currentManual.file_path.replace(/\.pdf$/i, '');
+      const response = await fetch(cleanUrl);
+      if (!response.ok) {
+        throw new Error(`Gagal mengunduh berkas PDF dari Supabase Storage (Status HTTP: ${response.status})`);
+      }
+      const pdfBuffer = await response.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(pdfBuffer) });
       const pdfDoc = await loadingTask.promise;
       const outline = await pdfDoc.getOutline();
       const extractedEntries: Array<{ manual_id: string; title: string; code: string; page_number: number }> = [];
@@ -534,6 +540,9 @@ export default function AdminDashboard() {
         setLoading(false);
         return;
       }
+
+      // Delete existing entries to prevent duplication
+      await supabase.from('toc_entries').delete().eq('manual_id', selectedManualId);
 
       const { error } = await supabase.from('toc_entries').insert(extractedEntries);
       if (error) throw error;
