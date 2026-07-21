@@ -217,7 +217,42 @@ export default function AppViewer() {
             });
 
             // Register all TOC entries linked to this manual
-            const entries = dbToc.filter(t => t.manual_id === manual.id);
+            let entries = dbToc.filter(t => t.manual_id === manual.id);
+
+            // Fallback for manuals with 0 database entries (e.g. Frederique Constant & Yema)
+            if (entries.length === 0) {
+              const slugLower = manual.slug.toLowerCase();
+              if (slugLower.includes('frederique')) {
+                entries = [
+                  { manual_id: manual.id, title: "Kaliber FC-200, FC-202, FC-203, FC-205, FC-208, FC-235 (Quartz Standard)", code: "FC-200", page_number: 3 },
+                  { manual_id: manual.id, title: "Kaliber FC-206, FC-209, FC-220, FC-240, FC-242, FC-245 (Quartz Moonphase & Date)", code: "FC-220", page_number: 4 },
+                  { manual_id: manual.id, title: "Kaliber FC-225, FC-252, FC-255 (Quartz Day-Date & Dual Time)", code: "FC-255", page_number: 5 },
+                  { manual_id: manual.id, title: "Kaliber FC-259, FC-260, FC-265, FC-360, FC-365 (Day-Date & Moonphase)", code: "FC-265", page_number: 6 },
+                  { manual_id: manual.id, title: "Kaliber FC-270, FC-291 (Quartz Business Calendar & Chronograph)", code: "FC-270", page_number: 7 },
+                  { manual_id: manual.id, title: "Kaliber FC-292, FC-296, FC-301, FC-310, FC-332, FC-435 (Chrono & Heart Beat Auto)", code: "FC-310", page_number: 8 },
+                  { manual_id: manual.id, title: "Kaliber FC-302, FC-303, FC-304, FC-306, FC-311, FC-312, FC-315, FC-316, FC-318, FC-345", code: "FC-303", page_number: 9 },
+                  { manual_id: manual.id, title: "Kaliber FC-308 (Regatta Countdown Timer)", code: "FC-308", page_number: 10 },
+                  { manual_id: manual.id, title: "Kaliber FC-396, FC-397, FC-700-P, FC-700, FC-706, FC-710, FC-720, FC-723 (Manufacture Auto)", code: "FC-710", page_number: 11 },
+                  { manual_id: manual.id, title: "Kaliber FC-701, FC-702, FC-703, FC-705, FC-712, FC-715, FC-716, FC-718, FC-726, FC-735", code: "FC-718", page_number: 12 },
+                  { manual_id: manual.id, title: "Kaliber FC-724-C, FC-760 (Manufacture Flyback Chronograph)", code: "FC-760", page_number: 13 },
+                  { manual_id: manual.id, title: "Kaliber FC-775 (Manufacture Perpetual Calendar)", code: "FC-775", page_number: 14 },
+                  { manual_id: manual.id, title: "Kaliber FC-810, FC-910, FC-914, FC-930 (Monolithic & Tourbillon)", code: "FC-810", page_number: 15 },
+                  { manual_id: manual.id, title: "Kaliber FC-915, FC-935, FC-942, FC-945 (Manufacture Moonphase & GMT)", code: "FC-945", page_number: 16 },
+                  { manual_id: manual.id, title: "Kaliber FC-975 (Manufacture Tourbillon Perpetual Calendar)", code: "FC-975", page_number: 17 },
+                  { manual_id: manual.id, title: "Kaliber FC-980, FC-985 (Manufacture Tourbillon GMT)", code: "FC-980", page_number: 18 }
+                ] as any;
+              } else if (slugLower.includes('yema')) {
+                entries = [
+                  { manual_id: manual.id, title: "Kaliber CMM.10 (In-House Automatic 3-Hand)", code: "CMM.10", page_number: 2 },
+                  { manual_id: manual.id, title: "Kaliber CMM.20 (Micro-Rotor Manufacture)", code: "CMM.20", page_number: 10 },
+                  { manual_id: manual.id, title: "Kaliber CMM.30 (Manufacture Tourbillon)", code: "CMM.30", page_number: 17 },
+                  { manual_id: manual.id, title: "Caliber YEMA 2000 & YEMA 3000 (In-House Automatic & GMT)", code: "YEMA 2000", page_number: 25 },
+                  { manual_id: manual.id, title: "Kaliber VH.31 (Sweep Second Quartz)", code: "VH.31", page_number: 31 },
+                  { manual_id: manual.id, title: "Kaliber VK61 & VK64 Meca-Quartz (Chronograph)", code: "VK61/VK64", page_number: 35 }
+                ] as any;
+              }
+            }
+
             entries.forEach(entry => {
               // Create a unique slug for each chapter under this manual
               const entrySlug = `${manual.slug}-${entry.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${entry.code.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
