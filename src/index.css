@@ -582,7 +582,6 @@ body {
   gap: 0.5rem;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
 }
 
 .catalog-item-text-group {
@@ -591,15 +590,16 @@ body {
   align-items: flex-start;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
 }
 
 .item-title {
   width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
   display: block;
+  line-height: 1.25;
+  margin-top: 1px;
 }
 
 .item-dot {
@@ -637,6 +637,7 @@ body {
   padding: 3px 8px;
   border-radius: 4px;
   margin-left: auto;
+  align-self: center;
 }
 
 .catalog-item-brand-label {
@@ -646,9 +647,7 @@ body {
   letter-spacing: 0.05em;
   font-weight: 600;
   width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
 }
 
 /* Bookmarks Overrides */
