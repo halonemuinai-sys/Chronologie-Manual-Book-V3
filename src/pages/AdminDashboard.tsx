@@ -439,13 +439,6 @@ export default function AdminDashboard() {
       const loadingTask = pdfjsLib.getDocument(currentManual.file_path);
       const pdfDoc = await loadingTask.promise;
       const outline = await pdfDoc.getOutline();
-
-      if (!outline || outline.length === 0) {
-        showMsg('Berkas PDF ini tidak memiliki Bookmark / Daftar Isi internal bawaan. Anda dapat mengisi bab secara manual di bawah ini.', 'error');
-        setLoading(false);
-        return;
-      }
-
       const extractedEntries: Array<{ manual_id: string; title: string; code: string; page_number: number }> = [];
 
       if (outline && outline.length > 0) {
@@ -469,7 +462,7 @@ export default function AdminDashboard() {
 
             let code = 'Standard';
             if (item.title) {
-              const match = item.title.match(/(cal\.\s*[\w\d-]+|calibre\s*[\w\d-]+|quartz|automatic|gmt|chronograph|moonphase|solar|manual|full calendar|small second)/i);
+              const match = item.title.match(/(fc-[\w\d-]+|cal\.\s*[\w\d-]+|calibre\s*[\w\d-]+|quartz|automatic|gmt|chronograph|moonphase|solar|manual|full calendar|small second)/i);
               if (match) {
                 code = match[0];
               } else if (item.title.length <= 15) {
@@ -496,7 +489,7 @@ export default function AdminDashboard() {
         await processOutline(outline);
       }
 
-      // If outline yielded fewer than 5 entries, scan page text for Movement/Caliber headings
+      // If outline yielded fewer than 5 entries, scan page text for Movement/Kaliber headings
       if (extractedEntries.length < 5) {
         const pageEntriesMap = new Map<number, { title: string; code: string }>();
 
@@ -505,13 +498,21 @@ export default function AdminDashboard() {
           const textContent = await page.getTextContent();
           const pageStr = textContent.items.map((it: any) => it.str).join(' ');
 
-          const calMatch = pageStr.match(/(?:movement\s+kaliber|kaliber|movement|caliber)\s*([\w\d\s,\/-]{2,25})/i);
+          const calMatch = pageStr.match(/(?:kaliber|movement\s+kaliber|movement|caliber|kalib)\s*([\w\d\s,\/\-]{2,40})/i);
           if (calMatch) {
             const rawTitle = calMatch[0].replace(/\s+/g, ' ').trim();
-            const calCode = calMatch[1] ? `Cal. ${calMatch[1].trim().slice(0, 15)}` : 'Kaliber';
-            if (!pageEntriesMap.has(i)) {
+            let calCode = 'Kaliber';
+
+            const fcMatch = pageStr.match(/FC-[\w\d\/-]+/i);
+            if (fcMatch) {
+              calCode = fcMatch[0];
+            } else if (calMatch[1]) {
+              calCode = calMatch[1].trim().slice(0, 15);
+            }
+
+            if (!pageEntriesMap.has(i) && rawTitle.length > 3 && rawTitle.length < 90) {
               pageEntriesMap.set(i, {
-                title: rawTitle.length > 60 ? rawTitle.slice(0, 60) : rawTitle,
+                title: rawTitle,
                 code: calCode
               });
             }
