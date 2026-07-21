@@ -1465,3 +1465,46 @@ body {
   margin: 2px 0;
 }
 
+/* ==========================================================================
+   Brand Filter Chips (Drawer Catalog)
+   ========================================================================== */
+.brand-filter-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 1rem 0.6rem 1rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.brand-filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.brand-chip {
+  background: rgba(var(--color-text-primary-rgb), 0.05);
+  color: var(--color-text-accent);
+  border: 1px solid rgba(var(--color-text-accent-rgb), 0.2);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Outfit', sans-serif;
+  flex-shrink: 0;
+}
+
+.brand-chip:hover {
+  background: rgba(var(--color-text-accent-rgb), 0.15);
+  color: var(--color-text-primary);
+}
+
+.brand-chip.is-active {
+  background: var(--color-accent);
+  color: var(--color-surface);
+  border-color: var(--color-accent);
+  font-weight: 700;
+}
+
