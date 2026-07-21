@@ -356,7 +356,11 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 70%;
+  height: 75%;
+  max-height: calc(85vh - env(safe-area-inset-top, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(0px, env(safe-area-inset-left, 0px));
+  padding-right: max(0px, env(safe-area-inset-right, 0px));
   background-color: var(--color-surface);
   border-top: 2px solid var(--color-accent);
   border-top-left-radius: 20px;
@@ -517,6 +521,7 @@ body {
 .sidebar-content-scroll {
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Brand header */
@@ -1381,7 +1386,7 @@ body {
    ========================================================================== */
 .floating-zoom-toolbar {
   position: absolute;
-  right: 12px;
+  right: max(12px, env(safe-area-inset-right, 0px));
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
@@ -1398,7 +1403,9 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   font-family: 'Outfit', sans-serif;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.4; /* Sangat tipis saat tidak digunakan agar tidak mengganggu */
+  opacity: 0.5;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Dark themes prominent box shadow and contrast */
@@ -1408,15 +1415,21 @@ body {
   border-color: rgba(var(--color-text-accent-rgb), 0.1);
 }
 
-.floating-zoom-toolbar:hover {
-  opacity: 0.95; /* Terang kembali saat didekati kursor */
+.floating-zoom-toolbar:hover,
+.floating-zoom-toolbar:active,
+.floating-zoom-toolbar:focus-within {
+  opacity: 0.95;
   border-color: rgba(var(--color-text-accent-rgb), 0.3);
   transform: translateY(-51%);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 .app-shell[data-theme="bvlgari"] .floating-zoom-toolbar:hover,
-.app-shell[data-theme="omega"] .floating-zoom-toolbar:hover {
+.app-shell[data-theme="bvlgari"] .floating-zoom-toolbar:active,
+.app-shell[data-theme="bvlgari"] .floating-zoom-toolbar:focus-within,
+.app-shell[data-theme="omega"] .floating-zoom-toolbar:hover,
+.app-shell[data-theme="omega"] .floating-zoom-toolbar:active,
+.app-shell[data-theme="omega"] .floating-zoom-toolbar:focus-within {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
