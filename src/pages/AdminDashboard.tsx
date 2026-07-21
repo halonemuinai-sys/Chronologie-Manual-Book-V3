@@ -19,8 +19,13 @@ import {
   X,
   Download,
   Sun,
-  Moon
+  Moon,
+  Sparkles,
+  Wand2
 } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
 type AdminThemeMode = 'dark' | 'light';
 const ADMIN_THEME_STORAGE_KEY = 'adminDashboardTheme';
@@ -417,6 +422,93 @@ export default function AdminDashboard() {
     } else {
       showMsg('Item daftar isi berhasil dihapus.', 'success');
       fetchTocEntries(selectedManualId);
+    }
+  };
+
+  // Auto Extract TOC from PDF Outlines
+  const handleAutoExtractToc = async () => {
+    if (!selectedManualId) return;
+    const currentManual = manuals.find(m => m.id === selectedManualId);
+    if (!currentManual || !currentManual.file_path) {
+      showMsg('File PDF tidak ditemukan pada dokumen ini.', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const loadingTask = pdfjsLib.getDocument(currentManual.file_path);
+      const pdfDoc = await loadingTask.promise;
+      const outline = await pdfDoc.getOutline();
+
+      if (!outline || outline.length === 0) {
+        showMsg('Berkas PDF ini tidak memiliki Bookmark / Daftar Isi internal bawaan. Anda dapat mengisi bab secara manual di bawah ini.', 'error');
+        setLoading(false);
+        return;
+      }
+
+      const extractedEntries: Array<{ manual_id: string; title: string; code: string; page_number: number }> = [];
+
+      const processOutline = async (items: any[]) => {
+        for (const item of items) {
+          let pageNum = 1;
+          try {
+            if (item.dest) {
+              let destRef = item.dest;
+              if (typeof item.dest === 'string') {
+                destRef = await pdfDoc.getDestination(item.dest);
+              }
+              if (Array.isArray(destRef) && destRef[0]) {
+                const pageIndex = await pdfDoc.getPageIndex(destRef[0]);
+                pageNum = pageIndex + 1;
+              }
+            }
+          } catch (e) {
+            console.warn('Could not resolve page destination:', item.title, e);
+          }
+
+          let code = 'Standard';
+          if (item.title) {
+            const match = item.title.match(/(cal\.\s*[\w\d-]+|calibre\s*[\w\d-]+|quartz|automatic|gmt|chronograph|moonphase|solar|manual|full calendar|small second)/i);
+            if (match) {
+              code = match[0];
+            } else if (item.title.length <= 15) {
+              code = item.title;
+            }
+          }
+
+          if (item.title && item.title.trim()) {
+            extractedEntries.push({
+              manual_id: selectedManualId,
+              title: item.title.trim(),
+              code: code,
+              page_number: pageNum
+            });
+          }
+
+          if (item.items && Array.isArray(item.items) && item.items.length > 0) {
+            await processOutline(item.items);
+          }
+        }
+      };
+
+      await processOutline(outline);
+
+      if (extractedEntries.length === 0) {
+        showMsg('Daftar isi PDF kosong atau tidak dapat diproses.', 'error');
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.from('toc_entries').insert(extractedEntries);
+      if (error) throw error;
+
+      showMsg(`Berhasil mengekstrak ${extractedEntries.length} bab dari PDF secara otomatis!`, 'success');
+      fetchTocEntries(selectedManualId);
+    } catch (err: any) {
+      console.error('Auto extract TOC error:', err);
+      showMsg(`Gagal mengekstrak PDF: ${err.message || err}`, 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -872,7 +964,32 @@ export default function AdminDashboard() {
               </div>
 
               {selectedManualId ? (
-                <div className="admin-grid-2">
+                <div>
+                  {/* Auto Extract Banner Card */}
+                  <div className="admin-card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, rgba(var(--admin-accent-rgb), 0.15), rgba(0, 0, 0, 0.2))', border: '1px solid rgba(var(--admin-accent-rgb), 0.3)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--admin-accent)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'Outfit, sans-serif' }}>
+                          <Sparkles size={18} /> Extrak Daftar Isi Otomatis dari PDF
+                        </h3>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', opacity: 0.8, fontFamily: 'Outfit, sans-serif' }}>
+                          Sistem akan mengekstrak seluruh Bab & Bookmark bawaan dari berkas PDF dokumen ini dan mengisinya secara otomatis.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAutoExtractToc}
+                        disabled={loading}
+                        className="admin-btn-primary"
+                        style={{ background: 'var(--admin-accent)', color: 'var(--admin-accent-contrast)', padding: '0.6rem 1.2rem', fontWeight: 600 }}
+                      >
+                        <Wand2 size={16} />
+                        {loading ? 'Mengekstrak PDF...' : '⚡ Extrak Daftar Isi Otomatis'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="admin-grid-2">
                   {/* Form Add TOC Entry */}
                   <form onSubmit={handleAddTocEntry} className="admin-card">
                     <h3 className="admin-card-title">Tambah Bab Daftar Isi</h3>
@@ -965,6 +1082,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
+              </div>
               ) : (
                 <div className="admin-card admin-empty-panel">
                   <BookOpen size={36} style={{ color: 'var(--admin-accent)', marginBottom: '16px', opacity: 0.7 }} />
