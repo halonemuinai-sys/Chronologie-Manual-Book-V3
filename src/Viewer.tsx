@@ -219,10 +219,17 @@ export default function AppViewer() {
             // Register all TOC entries linked to this manual
             let entries = dbToc.filter(t => t.manual_id === manual.id);
 
-            // Fallback for manuals with 0 database entries (e.g. Frederique Constant & Yema)
-            if (entries.length === 0) {
-              const slugLower = manual.slug.toLowerCase();
-              if (slugLower.includes('frederique')) {
+            const isFC = manual.slug.toLowerCase().includes('frederique') || 
+                         manual.title.toLowerCase().includes('frederique') ||
+                         brandName.toLowerCase().includes('frederique');
+
+            const isYema = manual.slug.toLowerCase().includes('yema') || 
+                           manual.title.toLowerCase().includes('yema') ||
+                           brandName.toLowerCase().includes('yema');
+
+            // Fallback for manuals with incomplete database entries
+            if ((isFC && entries.length < 10) || (isYema && entries.length < 4) || entries.length === 0) {
+              if (isFC) {
                 entries = [
                   { manual_id: manual.id, title: "Kaliber FC-200, FC-202, FC-203, FC-205, FC-208, FC-235 (Quartz Standard)", code: "FC-200", page_number: 3 },
                   { manual_id: manual.id, title: "Kaliber FC-206, FC-209, FC-220, FC-240, FC-242, FC-245 (Quartz Moonphase & Date)", code: "FC-220", page_number: 4 },
@@ -241,7 +248,7 @@ export default function AppViewer() {
                   { manual_id: manual.id, title: "Kaliber FC-975 (Manufacture Tourbillon Perpetual Calendar)", code: "FC-975", page_number: 17 },
                   { manual_id: manual.id, title: "Kaliber FC-980, FC-985 (Manufacture Tourbillon GMT)", code: "FC-980", page_number: 18 }
                 ] as any;
-              } else if (slugLower.includes('yema')) {
+              } else if (isYema) {
                 entries = [
                   { manual_id: manual.id, title: "Kaliber CMM.10 (In-House Automatic 3-Hand)", code: "CMM.10", page_number: 2 },
                   { manual_id: manual.id, title: "Kaliber CMM.20 (Micro-Rotor Manufacture)", code: "CMM.20", page_number: 10 },
