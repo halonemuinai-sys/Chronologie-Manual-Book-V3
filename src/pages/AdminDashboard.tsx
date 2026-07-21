@@ -448,53 +448,88 @@ export default function AdminDashboard() {
 
       const extractedEntries: Array<{ manual_id: string; title: string; code: string; page_number: number }> = [];
 
-      const processOutline = async (items: any[]) => {
-        for (const item of items) {
-          let pageNum = 1;
-          try {
-            if (item.dest) {
-              let destRef = item.dest;
-              if (typeof item.dest === 'string') {
-                destRef = await pdfDoc.getDestination(item.dest);
+      if (outline && outline.length > 0) {
+        const processOutline = async (items: any[]) => {
+          for (const item of items) {
+            let pageNum = 1;
+            try {
+              if (item.dest) {
+                let destRef = item.dest;
+                if (typeof item.dest === 'string') {
+                  destRef = await pdfDoc.getDestination(item.dest);
+                }
+                if (Array.isArray(destRef) && destRef[0]) {
+                  const pageIndex = await pdfDoc.getPageIndex(destRef[0]);
+                  pageNum = pageIndex + 1;
+                }
               }
-              if (Array.isArray(destRef) && destRef[0]) {
-                const pageIndex = await pdfDoc.getPageIndex(destRef[0]);
-                pageNum = pageIndex + 1;
+            } catch (e) {
+              console.warn('Could not resolve page destination:', item.title, e);
+            }
+
+            let code = 'Standard';
+            if (item.title) {
+              const match = item.title.match(/(cal\.\s*[\w\d-]+|calibre\s*[\w\d-]+|quartz|automatic|gmt|chronograph|moonphase|solar|manual|full calendar|small second)/i);
+              if (match) {
+                code = match[0];
+              } else if (item.title.length <= 15) {
+                code = item.title;
               }
             }
-          } catch (e) {
-            console.warn('Could not resolve page destination:', item.title, e);
-          }
 
-          let code = 'Standard';
-          if (item.title) {
-            const match = item.title.match(/(cal\.\s*[\w\d-]+|calibre\s*[\w\d-]+|quartz|automatic|gmt|chronograph|moonphase|solar|manual|full calendar|small second)/i);
-            if (match) {
-              code = match[0];
-            } else if (item.title.length <= 15) {
-              code = item.title;
+            // Keep clean titles under 80 chars
+            if (item.title && item.title.trim() && item.title.length < 80) {
+              extractedEntries.push({
+                manual_id: selectedManualId,
+                title: item.title.trim(),
+                code: code,
+                page_number: pageNum
+              });
+            }
+
+            if (item.items && Array.isArray(item.items) && item.items.length > 0) {
+              await processOutline(item.items);
             }
           }
+        };
 
-          if (item.title && item.title.trim()) {
-            extractedEntries.push({
-              manual_id: selectedManualId,
-              title: item.title.trim(),
-              code: code,
-              page_number: pageNum
-            });
-          }
+        await processOutline(outline);
+      }
 
-          if (item.items && Array.isArray(item.items) && item.items.length > 0) {
-            await processOutline(item.items);
+      // If outline yielded fewer than 5 entries, scan page text for Movement/Caliber headings
+      if (extractedEntries.length < 5) {
+        const pageEntriesMap = new Map<number, { title: string; code: string }>();
+
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+          const page = await pdfDoc.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageStr = textContent.items.map((it: any) => it.str).join(' ');
+
+          const calMatch = pageStr.match(/(?:movement\s+kaliber|kaliber|movement|caliber)\s*([\w\d\s,\/-]{2,25})/i);
+          if (calMatch) {
+            const rawTitle = calMatch[0].replace(/\s+/g, ' ').trim();
+            const calCode = calMatch[1] ? `Cal. ${calMatch[1].trim().slice(0, 15)}` : 'Kaliber';
+            if (!pageEntriesMap.has(i)) {
+              pageEntriesMap.set(i, {
+                title: rawTitle.length > 60 ? rawTitle.slice(0, 60) : rawTitle,
+                code: calCode
+              });
+            }
           }
         }
-      };
 
-      await processOutline(outline);
+        pageEntriesMap.forEach((val, pageNum) => {
+          extractedEntries.push({
+            manual_id: selectedManualId,
+            title: val.title,
+            code: val.code,
+            page_number: pageNum
+          });
+        });
+      }
 
       if (extractedEntries.length === 0) {
-        showMsg('Daftar isi PDF kosong atau tidak dapat diproses.', 'error');
+        showMsg('Daftar isi PDF kosong atau tidak dapat diproses secara otomatis.', 'error');
         setLoading(false);
         return;
       }

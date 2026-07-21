@@ -102,7 +102,7 @@ USING (true);
 
 CREATE POLICY "Admin full access for toc_entries"
 ON chronologie.toc_entries FOR ALL
-TO authenticated
+TO anon, authenticated
 USING (true)
 WITH CHECK (true);
 
